@@ -31,7 +31,7 @@ class OpenAIProvider(LLMProvider):
 
     def complete(self, prompt: str, **kwargs: object) -> str:
         try:
-            response = self.client.chat.completions.create(
+            response = self.client.chat.completions.create(  # type: ignore[call-overload]
                 model=self._model,
                 messages=[{"role": "user", "content": prompt}],
                 max_completion_tokens=kwargs.get("max_tokens", self._max_tokens),

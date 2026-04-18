@@ -162,27 +162,32 @@ class Recorder:
         for plan in plans:
             try:
                 if plan.plan_type == PlanType.CREATE:
+                    assert isinstance(plan, CreatePlan)
                     self._execute_create(plan)
                     actions.append(f"Created: {plan.target_path}")
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.MODIFY:
+                    assert isinstance(plan, ModifyPlan)
                     self._execute_modify(plan)
                     actions.append(f"Modified: {plan.target_path}")
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.MERGE:
+                    assert isinstance(plan, MergePlan)
                     result = self._execute_merge(plan)
                     actions.append(f"Merged: {result}")
                     affected.extend(plan.source_paths)
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.SPLIT:
+                    assert isinstance(plan, SplitPlan)
                     result = self._execute_split(plan)
                     actions.append(f"Split: {result}")
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.DELETE:
+                    assert isinstance(plan, DeletePlan)
                     self._execute_delete(plan)
                     actions.append(f"Deleted: {plan.target_path}")
                     affected.append(plan.target_path)

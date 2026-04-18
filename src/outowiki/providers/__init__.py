@@ -1,9 +1,11 @@
 """LLM provider integrations for OpenAI and Anthropic APIs."""
 
+from typing import Any
+
 from .base import LLMProvider
 
 # Lazy imports to handle missing dependencies
-def __getattr__(name: str):
+def __getattr__(name: str) -> Any:
     if name == "OpenAIProvider":
         try:
             from .openai import OpenAIProvider

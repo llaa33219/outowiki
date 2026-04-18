@@ -31,12 +31,12 @@ class AnthropicProvider(LLMProvider):
 
     def complete(self, prompt: str, **kwargs: object) -> str:
         try:
-            response = self.client.messages.create(
+            response = self.client.messages.create(  # type: ignore[call-overload]
                 model=self._model,
                 max_tokens=kwargs.get("max_tokens", self._max_tokens),
                 messages=[{"role": "user", "content": prompt}],
             )
-            return response.content[0].text
+            return str(response.content[0].text)
         except APIConnectionError as e:
             raise ProviderError(f"Connection error: {e}") from e
         except RateLimitError as e:

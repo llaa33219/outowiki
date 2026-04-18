@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from ..models.content import WikiDocument
 from ..models.search import SearchQuery, SearchResult
@@ -94,7 +94,7 @@ class OutoWiki:
 
     def configure(
         self,
-        provider: Optional[str] = None,
+        provider: Optional[Literal["openai", "anthropic"]] = None,
         api_key: Optional[str] = None,
         base_url: Optional[str] = None,
         model: Optional[str] = None,
@@ -158,7 +158,7 @@ class OutoWiki:
         query: Union[str, SearchQuery],
         category_filter: Optional[str] = None,
         max_results: int = 10,
-        return_mode: str = "path"
+        return_mode: Literal["path", "summary", "full"] = "path"
     ) -> SearchResult:
         """Search the wiki for information.
 

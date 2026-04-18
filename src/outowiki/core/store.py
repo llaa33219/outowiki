@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 from datetime import datetime
 
 import json
@@ -280,7 +280,7 @@ class WikiStore:
         ensure_directory(path)
         return path
 
-    def save_version(self, path: str, operation: str, related: List[str] = None) -> DocumentVersion:
+    def save_version(self, path: str, operation: str, related: Optional[List[str]] = None) -> DocumentVersion:
         """Save current document state as a new version.
 
         Args:
