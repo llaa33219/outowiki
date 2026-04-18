@@ -132,7 +132,6 @@ class InternalAgent:
             if isinstance(data, dict):
                 data = [data]
 
-            from ..models.plans import Plan
             plans: list[Plan] = []
             for plan_data in data:
                 plan_type = plan_data.get('plan_type', 'create')
