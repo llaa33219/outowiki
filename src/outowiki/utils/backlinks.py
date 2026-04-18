@@ -63,7 +63,7 @@ class BacklinkManager:
             if source in sources:
                 old_links.add(target)
 
-        new_links = set(self._normalize(l) for l in links)
+        new_links = set(self._normalize(link) for link in links)
 
         for target in old_links - new_links:
             self._index[target].discard(source)

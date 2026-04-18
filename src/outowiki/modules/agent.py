@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from ..providers.base import LLMProvider
-from ..models.analysis import AnalysisResult, IntentAnalysis
+from ..models.analysis import AnalysisResult
 from ..models.plans import Plan, PlanType
 from ..prompts import (
     ANALYSIS_PROMPT,

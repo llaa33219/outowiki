@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List
 from datetime import datetime
 
 import json
-import uuid
 
-from ..models.content import WikiDocument, DocumentMetadata
+from ..models.content import WikiDocument
 from ..models.history import HistoryEntry, DocumentVersion, RollbackResult, HistoryOperation
 from ..utils.markdown import parse_frontmatter, create_frontmatter
 from ..utils.filesystem import (

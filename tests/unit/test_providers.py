@@ -280,7 +280,7 @@ class TestAnthropicProviderInit:
     @patch("outowiki.providers.anthropic.Anthropic")
     def test_init_default_url_passes_none(self, mock_anthropic_cls):
         """When base_url is the default, None is passed to Anthropic client."""
-        provider = AnthropicProvider(api_key="k")
+        AnthropicProvider(api_key="k")
         mock_anthropic_cls.assert_called_once_with(
             api_key="k",
             base_url=None,

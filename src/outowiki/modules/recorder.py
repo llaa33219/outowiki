@@ -4,13 +4,12 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from ..models.content import RawContent, WikiDocument, DocumentMetadata
+from ..models.content import WikiDocument
 from ..models.analysis import AnalysisResult
 from ..models.plans import Plan, PlanType, CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan
 from ..core.store import WikiStore
 from .agent import InternalAgent
 from ..core.exceptions import WikiStoreError
-from ..models.history import HistoryOperation
 from ..utils.markdown import extract_sections
 
 

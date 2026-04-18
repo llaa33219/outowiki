@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -19,7 +18,7 @@ from outowiki.models.plans import (
     SplitPlan,
 )
 from outowiki.modules.agent import InternalAgent
-from outowiki.modules.recorder import Recorder, RecordResult
+from outowiki.modules.recorder import Recorder
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
