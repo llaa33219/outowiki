@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Dict, List
+import logging
+from typing import Dict, List, Optional
 
 from ..models.search import SearchQuery, SearchResult
 from ..models.analysis import IntentAnalysis
@@ -32,15 +33,17 @@ class Searcher:
         print(results.paths)  # ['users/alice/preferences.md', ...]
     """
 
-    def __init__(self, wiki: WikiStore, agent: InternalAgent):
+    def __init__(self, wiki: WikiStore, agent: InternalAgent, logger: Optional[logging.Logger] = None):
         """Initialize searcher.
 
         Args:
             wiki: Wiki store for document access
             agent: Internal agent for intent analysis
+            logger: Optional logger for debug output
         """
         self.wiki = wiki
         self.agent = agent
+        self.logger = logger or logging.getLogger(__name__)
 
     def search(self, query: str | SearchQuery) -> SearchResult:
         """Search the wiki for relevant documents."""
@@ -49,11 +52,21 @@ class Searcher:
         else:
             search_query = query
 
+        self.logger.debug(f"Searching for: {search_query.query}")
+        self.logger.debug(f"Search parameters: category={search_query.category_filter}, max_results={search_query.max_results}, mode={search_query.return_mode}")
+
         intent = self._analyze_intent(search_query)
+        self.logger.debug(f"Intent analysis: type={intent.information_type}, specificity={intent.specificity_level}, start={intent.exploration_start}")
+
         paths = self._explore(intent, search_query)
-        return self._return_results(paths, search_query, intent)
+        self.logger.debug(f"Found {len(paths)} documents: {paths}")
+
+        result = self._return_results(paths, search_query, intent)
+        self.logger.debug(f"Returning {len(result.paths)} results")
+        return result
 
     def _analyze_intent(self, query: SearchQuery) -> IntentAnalysis:
+        self.logger.debug("Analyzing search intent...")
         categories = self._get_categories()
 
         prompt = f"""Analyze this search query and determine the search strategy.
@@ -71,9 +84,12 @@ Determine:
 
 Respond with JSON matching IntentAnalysis schema."""
 
-        return self.agent._call_with_schema(prompt, IntentAnalysis)
+        intent = self.agent._call_with_schema(prompt, IntentAnalysis)
+        self.logger.debug(f"Intent analysis completed: {intent}")
+        return intent
 
     def _explore(self, intent: IntentAnalysis, query: SearchQuery) -> List[str]:
+        self.logger.debug("Starting document exploration...")
         paths: List[str] = []
 
         start_folder = intent.exploration_start
@@ -82,14 +98,26 @@ Respond with JSON matching IntentAnalysis schema."""
 
         if query.category_filter:
             start_folder = query.category_filter
+            self.logger.debug(f"Using category filter: {start_folder}")
+
+        self.logger.debug(f"Starting exploration from: {start_folder or 'root'}")
 
         if intent.specificity_level in ['very_specific', 'specific']:
-            paths.extend(self._search_specific(query.query, start_folder))
+            self.logger.debug("Performing specific search...")
+            specific_paths = self._search_specific(query.query, start_folder)
+            paths.extend(specific_paths)
+            self.logger.debug(f"Specific search found {len(specific_paths)} documents")
 
-        paths.extend(self._search_folder(start_folder, query.query, intent))
+        self.logger.debug("Performing folder search...")
+        folder_paths = self._search_folder(start_folder, query.query, intent)
+        paths.extend(folder_paths)
+        self.logger.debug(f"Folder search found {len(folder_paths)} documents")
 
         if paths and intent.confidence_requirement == 'high':
-            paths.extend(self._expand_backlinks(paths))
+            self.logger.debug("Expanding backlinks for high confidence...")
+            backlink_paths = self._expand_backlinks(paths)
+            paths.extend(backlink_paths)
+            self.logger.debug(f"Backlink expansion added {len(backlink_paths)} documents")
 
         seen: set[str] = set()
         unique_paths: List[str] = []
@@ -98,9 +126,11 @@ Respond with JSON matching IntentAnalysis schema."""
                 seen.add(path)
                 unique_paths.append(path)
 
+        self.logger.debug(f"Exploration completed: {len(unique_paths)} unique documents")
         return unique_paths[:query.max_results]
 
     def _search_specific(self, query: str, start_folder: str) -> List[str]:
+        self.logger.debug(f"Performing specific search for: {query}")
         paths: List[str] = []
         query_normalized = query.lower().replace(' ', '_')
 
@@ -110,15 +140,19 @@ Respond with JSON matching IntentAnalysis schema."""
                 test_path = test_path + '.md'
             if self.wiki.document_exists(test_path):
                 paths.append(test_path)
+                self.logger.debug(f"Found exact path: {test_path}")
 
         if start_folder:
             test_path = f"{start_folder}/{query_normalized}"
             if self.wiki.document_exists(test_path):
                 paths.append(test_path)
+                self.logger.debug(f"Found in folder: {test_path}")
 
         if self.wiki.document_exists(query_normalized):
             paths.append(query_normalized)
+            self.logger.debug(f"Found normalized: {query_normalized}")
 
+        self.logger.debug(f"Specific search found {len(paths)} documents")
         return paths
 
     def _search_folder(
@@ -127,11 +161,13 @@ Respond with JSON matching IntentAnalysis schema."""
         query: str,
         intent: IntentAnalysis
     ) -> List[str]:
+        self.logger.debug(f"Searching folder: {folder or 'root'}")
         paths: List[str] = []
         query_lower = query.lower()
 
         try:
             content = self.wiki.list_folder(folder)
+            self.logger.debug(f"Folder contains {len(content['files'])} files, {len(content['folders'])} subfolders")
 
             for filename in content['files']:
                 doc_path = f"{folder}/{filename}" if folder else filename
@@ -142,17 +178,25 @@ Respond with JSON matching IntentAnalysis schema."""
 
                     if score > 0.3:
                         paths.append(doc_path)
+                        self.logger.debug(f"Document {doc_path} has score {score:.2f} (included)")
+                    else:
+                        self.logger.debug(f"Document {doc_path} has score {score:.2f} (excluded)")
                 except WikiStoreError:
+                    self.logger.debug(f"Failed to read document: {doc_path}")
                     continue
 
             if intent.specificity_level in ['general', 'very_general']:
+                self.logger.debug("Recursing into subfolders...")
                 for subfolder in content['folders']:
                     subfolder_path = f"{folder}/{subfolder}" if folder else subfolder
-                    paths.extend(self._search_folder(subfolder_path, query, intent))
+                    subfolder_paths = self._search_folder(subfolder_path, query, intent)
+                    paths.extend(subfolder_paths)
+                    self.logger.debug(f"Subfolder {subfolder_path} found {len(subfolder_paths)} documents")
 
         except WikiStoreError:
-            pass
+            self.logger.debug(f"Folder not found: {folder}")
 
+        self.logger.debug(f"Folder search found {len(paths)} documents")
         return paths
 
     def _relevance_score(
@@ -165,18 +209,22 @@ Respond with JSON matching IntentAnalysis schema."""
 
         if query_lower in doc.title.lower():
             score += 0.5
+            self.logger.debug(f"Title match: +0.5")
 
         content_lower = doc.content.lower()
         if query_lower in content_lower:
             score += 0.3
+            self.logger.debug(f"Content match: +0.3")
 
         for tag in doc.tags:
             if query_lower in tag.lower():
                 score += 0.2
+                self.logger.debug(f"Tag match: +0.2")
                 break
 
         if query_lower in doc.category.lower():
             score += 0.1
+            self.logger.debug(f"Category match: +0.1")
 
         if intent.information_type:
             type_keywords = {
@@ -191,8 +239,10 @@ Respond with JSON matching IntentAnalysis schema."""
             for keyword in keywords:
                 if keyword in content_lower or keyword in doc.title.lower():
                     score += 0.1
+                    self.logger.debug(f"Type keyword match ({keyword}): +0.1")
                     break
 
+        self.logger.debug(f"Total relevance score: {score:.2f}")
         return min(score, 1.0)
 
     def _expand_backlinks(self, paths: List[str]) -> List[str]:
@@ -218,28 +268,35 @@ Respond with JSON matching IntentAnalysis schema."""
         query: SearchQuery,
         intent: IntentAnalysis
     ) -> SearchResult:
+        self.logger.debug(f"Returning results for {len(paths)} documents")
         result = SearchResult(paths=paths, query_analysis=intent)
 
         if query.return_mode in ['summary', 'full']:
+            self.logger.debug("Generating summaries...")
             summaries: Dict[str, str] = {}
             for path in paths:
                 try:
                     doc = self.wiki.read_document(path)
                     summary = self.agent.generate_summary(doc.content[:1000])
                     summaries[path] = summary
-                except Exception:
+                    self.logger.debug(f"Summary for {path}: {summary[:50]}...")
+                except Exception as e:
+                    self.logger.error(f"Failed to generate summary for {path}: {e}")
                     summaries[path] = "Summary unavailable"
             result.summaries = summaries
 
         if query.return_mode == 'full':
+            self.logger.debug("Loading full documents...")
             documents: Dict[str, WikiDocument] = {}
             for path in paths:
                 try:
                     documents[path] = self.wiki.read_document(path)
-                except WikiStoreError:
-                    pass
+                    self.logger.debug(f"Loaded full document: {path}")
+                except WikiStoreError as e:
+                    self.logger.error(f"Failed to load document {path}: {e}")
             result.documents = documents
 
+        self.logger.debug(f"Results ready: {len(result.paths)} paths")
         return result
 
     def _get_categories(self) -> List[str]:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
 from pydantic import BaseModel, ValidationError
@@ -36,13 +37,15 @@ class InternalAgent:
         analysis = agent.analyze(content, context={"categories": [...]})
     """
 
-    def __init__(self, provider: LLMProvider):
+    def __init__(self, provider: LLMProvider, logger: Optional[logging.Logger] = None):
         """Initialize internal agent.
 
         Args:
             provider: LLM provider for completions
+            logger: Optional logger for debug output
         """
         self.provider = provider
+        self.logger = logger or logging.getLogger(__name__)
 
     def analyze(
         self,
@@ -63,6 +66,9 @@ class InternalAgent:
         Raises:
             ProviderError: If LLM call fails
         """
+        self.logger.debug(f"Analyzing content: {content[:100]}...")
+        self.logger.debug(f"Content type: {content_type}")
+        
         ctx = context or {}
 
         # Select appropriate prompt based on content type
@@ -84,7 +90,10 @@ class InternalAgent:
                 recent_docs=ctx.get('recent_docs', [])
             )
 
-        return self._call_with_schema(prompt, AnalysisResult)
+        self.logger.debug(f"Using prompt type: {content_type}")
+        analysis = self._call_with_schema(prompt, AnalysisResult)
+        self.logger.debug(f"Analysis completed: {analysis}")
+        return analysis
 
     def plan(
         self,
@@ -107,24 +116,32 @@ class InternalAgent:
         Raises:
             ProviderError: If LLM call fails
         """
+        self.logger.debug(f"Creating plans for action: {analysis.suggested_action}")
+        self.logger.debug(f"Affected documents: {list(affected_docs.keys()) if affected_docs else []}")
+        
         if analysis.suggested_action == PlanType.MERGE and merge_docs:
             prompt = MERGE_PLANNING_PROMPT.format(
                 documents_json=json.dumps(merge_docs, indent=2),
                 reason=analysis.specific_content
             )
+            self.logger.debug("Using merge planning prompt")
         elif analysis.suggested_action == PlanType.SPLIT and split_doc:
             prompt = SPLIT_PLANNING_PROMPT.format(
                 document_json=json.dumps(split_doc, indent=2),
                 reason=analysis.specific_content
             )
+            self.logger.debug("Using split planning prompt")
         else:
             prompt = PLANNING_PROMPT.format(
                 analysis_json=analysis.model_dump_json(indent=2),
                 affected_docs=list(affected_docs.keys()) if affected_docs else [],
                 doc_summaries=json.dumps(affected_docs or {}, indent=2)
             )
+            self.logger.debug("Using standard planning prompt")
 
+        self.logger.debug("Calling LLM for plan generation...")
         response = self.provider.complete(prompt)
+        self.logger.debug(f"LLM response length: {len(response)} characters")
 
         # Parse response as list of plans
         try:
@@ -135,6 +152,8 @@ class InternalAgent:
             plans: list[Plan] = []
             for plan_data in data:
                 plan_type = plan_data.get('plan_type', 'create')
+                self.logger.debug(f"Parsing plan: {plan_type}")
+                
                 if plan_type in ('create', 'CREATE'):
                     from ..models.plans import CreatePlan
                     plans.append(CreatePlan(**plan_data))
@@ -151,8 +170,10 @@ class InternalAgent:
                     from ..models.plans import DeletePlan
                     plans.append(DeletePlan(**plan_data))
 
+            self.logger.debug(f"Generated {len(plans)} plans")
             return plans
         except (json.JSONDecodeError, ValidationError) as e:
+            self.logger.error(f"Failed to parse plans: {e}")
             raise ProviderError(f"Failed to parse plans: {e}") from e
 
     def generate_document(
@@ -178,6 +199,9 @@ class InternalAgent:
         Raises:
             ProviderError: If LLM call fails
         """
+        self.logger.debug(f"Generating document: {title}")
+        self.logger.debug(f"Category: {category}, Tags: {tags}, Related: {related}")
+        
         prompt = DOCUMENT_GENERATION_PROMPT.format(
             content=content,
             title=title,
@@ -186,7 +210,10 @@ class InternalAgent:
             related=related
         )
 
-        return self.provider.complete(prompt)
+        self.logger.debug("Calling LLM for document generation...")
+        result = self.provider.complete(prompt)
+        self.logger.debug(f"Generated document length: {len(result)} characters")
+        return result
 
     def generate_summary(self, content: str) -> str:
         """Generate a brief summary of content.
@@ -197,8 +224,13 @@ class InternalAgent:
         Returns:
             Summary text (under 200 tokens)
         """
+        self.logger.debug(f"Generating summary for content: {content[:50]}...")
+        
         prompt = SUMMARY_GENERATION_PROMPT.format(content=content)
-        return self.provider.complete(prompt, max_tokens=300)
+        result = self.provider.complete(prompt, max_tokens=300)
+        
+        self.logger.debug(f"Generated summary: {result[:50]}...")
+        return result
 
     def _call_with_schema(self, prompt: str, schema: Type[T]) -> T:
         """Call LLM with schema validation.
@@ -210,4 +242,7 @@ class InternalAgent:
         Returns:
             Validated instance of schema
         """
-        return self.provider.complete_with_schema(prompt, schema)
+        self.logger.debug(f"Calling LLM with schema: {schema.__name__}")
+        result = self.provider.complete_with_schema(prompt, schema)
+        self.logger.debug(f"Schema validation successful: {schema.__name__}")
+        return result

@@ -1,6 +1,7 @@
 """Information recording pipeline for OutoWiki."""
 from __future__ import annotations
 
+import logging
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -54,15 +55,17 @@ class Recorder:
         print(result.actions_taken)  # ['Created: users/preferences/python.md']
     """
 
-    def __init__(self, wiki: WikiStore, agent: InternalAgent):
+    def __init__(self, wiki: WikiStore, agent: InternalAgent, logger: Optional[logging.Logger] = None):
         """Initialize recorder.
 
         Args:
             wiki: Wiki store for document operations
             agent: Internal agent for LLM processing
+            logger: Optional logger for debug output
         """
         self.wiki = wiki
         self.agent = agent
+        self.logger = logger or logging.getLogger(__name__)
 
     def record(
         self,
@@ -88,13 +91,22 @@ class Recorder:
                 content_type = metadata.get('type', 'conversation') if metadata else 'conversation'
                 context = metadata.get('context', {}) if metadata else {}
 
+            self.logger.debug(f"Recording content: {raw_content[:100]}...")
+            self.logger.debug(f"Content type: {content_type}, Context: {context}")
+
             analysis = self._analyze(raw_content, content_type, context)
+            self.logger.debug(f"Analysis result: {analysis}")
+
             plans = self._plan(analysis)
+            self.logger.debug(f"Generated {len(plans)} plans: {[p.plan_type for p in plans]}")
+
             result = self._execute(plans)
+            self.logger.debug(f"Execution result: {result}")
 
             return result
 
         except Exception as e:
+            self.logger.error(f"Recording failed: {e}", exc_info=True)
             return RecordResult(
                 success=False,
                 actions_taken=[],
@@ -118,6 +130,7 @@ class Recorder:
         Returns:
             AnalysisResult with extracted information
         """
+        self.logger.debug("Starting content analysis...")
         categories = self._get_categories()
         recent_docs = self._get_recent_docs()
 
@@ -125,8 +138,11 @@ class Recorder:
             'categories': categories,
             'recent_docs': recent_docs
         })
+        self.logger.debug(f"Context for analysis: categories={len(categories)}, recent_docs={len(recent_docs)}")
 
-        return self.agent.analyze(content, content_type, context)
+        analysis = self.agent.analyze(content, content_type, context)
+        self.logger.debug(f"Analysis completed: type={analysis.information_type}, action={analysis.suggested_action}")
+        return analysis
 
     def _plan(self, analysis: AnalysisResult) -> List[Plan]:
         """Create modification plans.
@@ -137,15 +153,19 @@ class Recorder:
         Returns:
             List of Plan objects
         """
+        self.logger.debug("Creating modification plans...")
         affected_docs = {}
         for doc_path in analysis.target_documents:
             try:
                 doc = self.wiki.read_document(doc_path)
                 affected_docs[doc_path] = doc.content[:500]
+                self.logger.debug(f"Affected document: {doc_path}")
             except WikiStoreError:
-                pass
+                self.logger.debug(f"Document not found: {doc_path}")
 
-        return self.agent.plan(analysis, affected_docs)
+        plans = self.agent.plan(analysis, affected_docs)
+        self.logger.debug(f"Plans created: {len(plans)} plans")
+        return plans
 
     def _execute(self, plans: List[Plan]) -> RecordResult:
         """Execute modification plans.
@@ -156,25 +176,30 @@ class Recorder:
         Returns:
             RecordResult with actions taken
         """
+        self.logger.debug(f"Executing {len(plans)} plans...")
         actions = []
         affected = []
 
-        for plan in plans:
+        for i, plan in enumerate(plans, 1):
+            self.logger.debug(f"Executing plan {i}/{len(plans)}: {plan.plan_type}")
             try:
                 if plan.plan_type == PlanType.CREATE:
                     assert isinstance(plan, CreatePlan)
+                    self.logger.debug(f"Creating document: {plan.target_path}")
                     self._execute_create(plan)
                     actions.append(f"Created: {plan.target_path}")
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.MODIFY:
                     assert isinstance(plan, ModifyPlan)
+                    self.logger.debug(f"Modifying document: {plan.target_path}")
                     self._execute_modify(plan)
                     actions.append(f"Modified: {plan.target_path}")
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.MERGE:
                     assert isinstance(plan, MergePlan)
+                    self.logger.debug(f"Merging documents: {plan.source_paths} -> {plan.target_path}")
                     result = self._execute_merge(plan)
                     actions.append(f"Merged: {result}")
                     affected.extend(plan.source_paths)
@@ -182,19 +207,25 @@ class Recorder:
 
                 elif plan.plan_type == PlanType.SPLIT:
                     assert isinstance(plan, SplitPlan)
+                    self.logger.debug(f"Splitting document: {plan.target_path}")
                     result = self._execute_split(plan)
                     actions.append(f"Split: {result}")
                     affected.append(plan.target_path)
 
                 elif plan.plan_type == PlanType.DELETE:
                     assert isinstance(plan, DeletePlan)
+                    self.logger.debug(f"Deleting document: {plan.target_path}")
                     self._execute_delete(plan)
                     actions.append(f"Deleted: {plan.target_path}")
                     affected.append(plan.target_path)
 
+                self.logger.debug(f"Plan {i} executed successfully")
+
             except Exception as e:
+                self.logger.error(f"Plan {i} failed: {e}", exc_info=True)
                 actions.append(f"Failed {plan.plan_type}: {e}")
 
+        self.logger.debug(f"Execution completed: {len(actions)} actions, {len(affected)} documents affected")
         return RecordResult(
             success=len(actions) > 0,
             actions_taken=actions,
