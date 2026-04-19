@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from ..providers.base import LLMProvider
 from ..models.analysis import AnalysisResult
+from ..models.content import DocumentGeneration, SummaryGeneration
 from ..models.plans import Plan, PlanType
 from ..prompts import (
     ANALYSIS_PROMPT,
@@ -156,21 +157,6 @@ class InternalAgent:
         tags: List[str],
         related: List[str]
     ) -> str:
-        """Generate markdown document content.
-
-        Args:
-            content: Raw content to document
-            title: Document title
-            category: Document category path
-            tags: Document tags
-            related: Related document paths
-
-        Returns:
-            Generated markdown content (without frontmatter)
-
-        Raises:
-            ProviderError: If LLM call fails
-        """
         self.logger.debug(f"Generating document: {title}")
         self.logger.debug(f"Category: {category}, Tags: {tags}, Related: {related}")
         
@@ -183,26 +169,18 @@ class InternalAgent:
         )
 
         self.logger.debug("Calling LLM for document generation...")
-        result = self.provider.complete(prompt)
-        self.logger.debug(f"Generated document length: {len(result)} characters")
-        return result
+        result = self._call_with_schema(prompt, DocumentGeneration)
+        self.logger.debug(f"Generated document length: {len(result.content)} characters")
+        return result.content
 
     def generate_summary(self, content: str) -> str:
-        """Generate a brief summary of content.
-
-        Args:
-            content: Content to summarize
-
-        Returns:
-            Summary text (under 200 tokens)
-        """
         self.logger.debug(f"Generating summary for content: {content[:50]}...")
         
         prompt = SUMMARY_GENERATION_PROMPT.format(content=content)
-        result = self.provider.complete(prompt, max_tokens=300)
+        result = self._call_with_schema(prompt, SummaryGeneration)
         
-        self.logger.debug(f"Generated summary: {result[:50]}...")
-        return result
+        self.logger.debug(f"Generated summary: {result.summary[:50]}...")
+        return result.summary
 
     def _call_with_schema(self, prompt: str, schema: Type[T]) -> T:
         """Call LLM with schema validation.

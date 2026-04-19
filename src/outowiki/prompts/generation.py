@@ -24,7 +24,7 @@ Follow these wiki conventions:
 - Use bullet points for lists
 - Include relevant links to related content
 
-Generate the complete document now."""
+Return the complete document content using the DocumentGeneration tool."""
 
 SUMMARY_GENERATION_PROMPT = """Generate a brief summary of this document.
 
@@ -36,7 +36,9 @@ Create a 2-3 sentence summary that captures:
 2. Key points or findings
 3. Relevance to related documents
 
-Keep the summary under 200 tokens."""
+Keep the summary under 200 tokens.
+
+Return the summary using the SummaryGeneration tool."""
 
 SECTION_GENERATION_PROMPT = """Generate content for this wiki section.
 

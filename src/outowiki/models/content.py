@@ -54,3 +54,23 @@ class DocumentMetadata(BaseModel):
     category: str
     related: List[str] = []
     custom: Dict[str, Any] = {}
+
+
+class DocumentGeneration(BaseModel):
+    """Generated document content from LLM.
+
+    Used to return structured document content via tool calls
+    instead of parsing text responses.
+    """
+
+    content: str
+
+
+class SummaryGeneration(BaseModel):
+    """Generated summary content from LLM.
+
+    Used to return structured summary content via tool calls
+    instead of parsing text responses.
+    """
+
+    summary: str
