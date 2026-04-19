@@ -398,7 +398,7 @@ class Recorder:
         )
 
     def _get_categories(self, max_depth: int = 4) -> List[str]:
-        categories = []
+        categories: List[str] = []
         self._collect_categories("", categories, 0, max_depth)
         return categories
 

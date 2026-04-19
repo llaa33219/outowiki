@@ -40,7 +40,7 @@ class WikiStore:
         if init_default_folders:
             self._init_default_folders()
 
-    def _init_default_folders(self):
+    def _init_default_folders(self) -> None:
         default_folders = ["users", "tools", "agent", "knowledge", "history", self.default_category]
         for folder in default_folders:
             folder_path = self.root / folder
