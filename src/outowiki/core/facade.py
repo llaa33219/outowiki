@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 
@@ -29,7 +31,8 @@ class OutoWiki:
             provider="openai",
             api_key="sk-...",
             model="gpt-4",
-            wiki_path="./my_wiki"
+            wiki_path="./my_wiki",
+            debug=True
         )
 
         wiki = OutoWiki(config)
@@ -52,15 +55,60 @@ class OutoWiki:
             ConfigError: If configuration is invalid
         """
         self.config = config or WikiConfig()
+        self._setup_logging()
         self._initialize()
+
+    def _setup_logging(self) -> None:
+        """Configure logging based on debug settings."""
+        self.logger = logging.getLogger("outowiki")
+        self.logger.handlers.clear()
+        
+        if self.config.debug:
+            level = logging.DEBUG
+        else:
+            level = getattr(logging, self.config.log_level, logging.INFO)
+        
+        self.logger.setLevel(level)
+        
+        handler = logging.StreamHandler()
+        handler.setLevel(level)
+        
+        formatter = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
+        self.logger.propagate = False
+
+    def _mask_sensitive_data(self, text: str) -> str:
+        """Mask sensitive information like API keys in log output."""
+        patterns = [
+            (r'(sk-[a-zA-Z0-9]{20,})', 'sk-***MASKED***'),
+            (r'(sk-ant-[a-zA-Z0-9]{20,})', 'sk-ant-***MASKED***'),
+            (r'(api[_-]?key["\s:=]+["\']?)([a-zA-Z0-9]{20,})', r'\1***MASKED***'),
+        ]
+        
+        masked = text
+        for pattern, replacement in patterns:
+            masked = re.sub(pattern, replacement, masked, flags=re.IGNORECASE)
+        
+        return masked
 
     def _initialize(self) -> None:
         """Initialize internal components."""
         self._provider = self._create_provider()
         self._store = WikiStore(self.config.wiki_path)
-        self._agent = InternalAgent(self._provider)
-        self._recorder = Recorder(self._store, self._agent)
-        self._searcher = Searcher(self._store, self._agent)
+        self._agent = InternalAgent(self._provider, self.logger)
+        self._recorder = Recorder(self._store, self._agent, self.logger)
+        self._searcher = Searcher(self._store, self._agent, self.logger)
+        
+        if self.config.debug:
+            self.logger.debug("OutoWiki initialized with debug mode enabled")
+            self.logger.debug(f"Wiki path: {self.config.wiki_path}")
+            self.logger.debug(f"Provider: {self.config.provider}")
+            masked_key = self._mask_sensitive_data(self.config.api_key)
+            self.logger.debug(f"API key: {masked_key}")
 
     def _create_provider(self) -> LLMProvider:
         """Create LLM provider based on config.

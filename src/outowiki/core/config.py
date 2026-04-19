@@ -51,7 +51,8 @@ class WikiConfig(BaseModel):
             api_key="sk-...",
             model="gpt-4",
             max_output_tokens=4000,
-            wiki_path="./my_wiki"
+            wiki_path="./my_wiki",
+            debug=True
         )
     """
 
@@ -65,6 +66,10 @@ class WikiConfig(BaseModel):
     # Wiki settings
     wiki_path: str = "./wiki"
     settings: WikiSettings = Field(default_factory=WikiSettings)
+    
+    # Debug settings
+    debug: bool = False
+    log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
     @field_validator('wiki_path')
     @classmethod
