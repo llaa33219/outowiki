@@ -1,7 +1,7 @@
 """OpenAI-compatible LLM provider."""
 
 import json
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from openai import (
     APIConnectionError,
@@ -36,9 +36,9 @@ class OpenAIProvider(LLMProvider):
         self._model = model
         self._max_tokens = max_tokens
 
-    def complete(self, prompt: str, **kwargs: object) -> str:
+    def complete(self, prompt: str, **kwargs: Any) -> str:
         try:
-            response = self.client.chat.completions.create(  # type: ignore[call-overload]
+            response = self.client.chat.completions.create(
                 model=self._model,
                 messages=[{"role": "user", "content": prompt}],
                 max_completion_tokens=kwargs.get("max_tokens", self._max_tokens),
@@ -58,7 +58,7 @@ class OpenAIProvider(LLMProvider):
         self,
         prompt: str,
         schema: type[T],
-        **kwargs: object,
+        **kwargs: Any,
     ) -> T:
         tools = [pydantic_function_tool(schema)]
         
@@ -80,7 +80,7 @@ class OpenAIProvider(LLMProvider):
         tool_call = message.tool_calls[0]
         
         if hasattr(tool_call.function, 'parsed_arguments') and tool_call.function.parsed_arguments:
-            return tool_call.function.parsed_arguments
+            return schema.model_validate(tool_call.function.parsed_arguments)
         
         try:
             data = json.loads(tool_call.function.arguments)

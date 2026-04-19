@@ -1,6 +1,6 @@
 """Anthropic Claude LLM provider."""
 
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from anthropic import APIConnectionError, APIStatusError, Anthropic, RateLimitError
 from pydantic import BaseModel
@@ -28,15 +28,16 @@ class AnthropicProvider(LLMProvider):
         self._model = model
         self._max_tokens = max_tokens
 
-    def complete(self, prompt: str, **kwargs: object) -> str:
+    def complete(self, prompt: str, **kwargs: Any) -> str:
         try:
-            response = self.client.messages.create(  # type: ignore[call-overload]
+            response = self.client.messages.create(
                 model=self._model,
                 max_tokens=kwargs.get("max_tokens", self._max_tokens),
                 messages=[{"role": "user", "content": prompt}],
             )
-            text = response.content[0].text if response.content else ""
-            return text or ""
+            if response.content and hasattr(response.content[0], 'text'):
+                return response.content[0].text or ""
+            return ""
         except APIConnectionError as e:
             raise ProviderError(f"Connection error: {e}") from e
         except RateLimitError as e:
@@ -48,9 +49,9 @@ class AnthropicProvider(LLMProvider):
         self,
         prompt: str,
         schema: type[T],
-        **kwargs: object,
+        **kwargs: Any,
     ) -> T:
-        tools = [{
+        tools: list[dict[str, Any]] = [{
             "name": "extract",
             "description": "Extract structured data matching the schema",
             "input_schema": schema.model_json_schema()
@@ -60,7 +61,7 @@ class AnthropicProvider(LLMProvider):
             model=self._model,
             max_tokens=kwargs.get("max_tokens", self._max_tokens),
             messages=[{"role": "user", "content": prompt}],
-            tools=tools,
+            tools=tools,  # type: ignore[arg-type]
         )
         
         tool_use = None

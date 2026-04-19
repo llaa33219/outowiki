@@ -142,7 +142,7 @@ class InternalAgent:
         from ..models.plans import PlanResponse
         plan_response = self._call_with_schema(prompt, PlanResponse)
         self.logger.debug(f"Generated {len(plan_response.plans)} plans")
-        return plan_response.plans
+        return list(plan_response.plans)
 
     def generate_document(
         self,
