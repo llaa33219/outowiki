@@ -17,6 +17,7 @@ OutoWiki is a wiki-based knowledge management system designed for AI agents. It 
 - **Automatic document classification and organization**
 - **Backlink system** for document relationships
 - **Document merge/split** with Wiki rules
+- **Debug mode** for monitoring record/search operations
 
 ## Installation
 
@@ -65,10 +66,43 @@ Configure OutoWiki using `WikiConfig`:
 | `model` | Model identifier | provider default |
 | `max_output_tokens` | Maximum output tokens for LLM response | 4000 |
 | `wiki_path` | Path to wiki directory | "./wiki" |
+| `debug` | Enable debug logging | false |
+| `log_level` | Logging level (DEBUG/INFO/WARNING/ERROR) | "INFO" |
 
 ## API Reference
 
 For detailed API documentation, see [docs/index.md](docs/index.md).
+
+## Debug Mode
+
+Enable debug mode to monitor record and search operations:
+
+```python
+from outowiki import OutoWiki, WikiConfig
+
+# Enable debug mode
+config = WikiConfig(
+    provider="openai",
+    api_key="sk-...",
+    model="gpt-4",
+    wiki_path="./my_wiki",
+    debug=True,  # Enable debug logging
+    log_level="DEBUG"  # Optional: set log level
+)
+
+wiki = OutoWiki(config)
+
+# Debug output shows pipeline stages
+result = wiki.record("User prefers Python")
+# 2026-04-19 10:30:00 - outowiki - DEBUG - Recording content: User prefers Python...
+# 2026-04-19 10:30:00 - outowiki - DEBUG - Analysis result: information_type='user'...
+# 2026-04-19 10:30:00 - outowiki - DEBUG - Generated 1 plans: ['CREATE']
+```
+
+**Features:**
+- Detailed logging of analysis, planning, and execution stages
+- API keys automatically masked in output
+- Configurable log levels (DEBUG, INFO, WARNING, ERROR)
 
 ## License
 
