@@ -1,6 +1,5 @@
 """Unit tests for LLM providers (OpenAI and Anthropic)."""
 
-import json
 from unittest.mock import MagicMock, patch
 
 import pytest

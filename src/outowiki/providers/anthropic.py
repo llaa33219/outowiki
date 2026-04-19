@@ -1,6 +1,5 @@
 """Anthropic Claude LLM provider."""
 
-import json
 from typing import TypeVar
 
 from anthropic import APIConnectionError, APIStatusError, Anthropic, RateLimitError
