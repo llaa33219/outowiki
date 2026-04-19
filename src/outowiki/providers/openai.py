@@ -3,7 +3,14 @@
 import json
 from typing import TypeVar
 
-from openai import APIConnectionError, APIStatusError, OpenAI, RateLimitError
+from openai import (
+    APIConnectionError,
+    APIStatusError,
+    InternalServerError,
+    OpenAI,
+    RateLimitError,
+    pydantic_function_tool,
+)
 from pydantic import BaseModel
 
 from ..core.exceptions import ProviderError
@@ -42,6 +49,8 @@ class OpenAIProvider(LLMProvider):
             raise ProviderError(f"Connection error: {e}") from e
         except RateLimitError as e:
             raise ProviderError(f"Rate limit exceeded: {e}") from e
+        except InternalServerError as e:
+            raise ProviderError(f"Server error: {e}") from e
         except APIStatusError as e:
             raise ProviderError(f"API error {e.status_code}: {e.message}") from e
 
@@ -51,16 +60,37 @@ class OpenAIProvider(LLMProvider):
         schema: type[T],
         **kwargs: object,
     ) -> T:
-        schema_prompt = (
-            f"{prompt}\n\nRespond with valid JSON matching this schema:\n"
-            f"{schema.model_json_schema()}"
+        tools = [pydantic_function_tool(schema)]
+        
+        response = self.client.chat.completions.parse(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+            tools=tools,
+            max_completion_tokens=kwargs.get("max_tokens", self._max_tokens),
+            temperature=kwargs.get("temperature", 0.7),
         )
-        response_text = self.complete(schema_prompt, **kwargs)
+        
+        message = response.choices[0].message
+        
+        if not message.tool_calls:
+            raise ProviderError(
+                "No tool call in response. The model did not return structured data."
+            )
+        
+        tool_call = message.tool_calls[0]
+        
+        if hasattr(tool_call.function, 'parsed_arguments') and tool_call.function.parsed_arguments:
+            return tool_call.function.parsed_arguments
+        
         try:
-            data = json.loads(response_text)
+            data = json.loads(tool_call.function.arguments)
             return schema.model_validate(data)
-        except (json.JSONDecodeError, Exception) as e:
-            raise ProviderError(f"Failed to parse schema: {e}") from e
+        except json.JSONDecodeError as e:
+            raise ProviderError(
+                f"Invalid tool arguments: {e}\nArguments were: {tool_call.function.arguments[:200]}"
+            ) from e
+        except Exception as e:
+            raise ProviderError(f"Schema validation failed: {e}") from e
 
     @property
     def model_name(self) -> str:

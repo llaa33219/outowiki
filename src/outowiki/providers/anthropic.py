@@ -36,7 +36,8 @@ class AnthropicProvider(LLMProvider):
                 max_tokens=kwargs.get("max_tokens", self._max_tokens),
                 messages=[{"role": "user", "content": prompt}],
             )
-            return str(response.content[0].text)
+            text = response.content[0].text if response.content else ""
+            return text or ""
         except APIConnectionError as e:
             raise ProviderError(f"Connection error: {e}") from e
         except RateLimitError as e:
@@ -50,16 +51,34 @@ class AnthropicProvider(LLMProvider):
         schema: type[T],
         **kwargs: object,
     ) -> T:
-        schema_prompt = (
-            f"{prompt}\n\nRespond with valid JSON matching this schema:\n"
-            f"{schema.model_json_schema()}"
+        tools = [{
+            "name": "extract",
+            "description": "Extract structured data matching the schema",
+            "input_schema": schema.model_json_schema()
+        }]
+        
+        response = self.client.messages.create(
+            model=self._model,
+            max_tokens=kwargs.get("max_tokens", self._max_tokens),
+            messages=[{"role": "user", "content": prompt}],
+            tools=tools,
         )
-        response_text = self.complete(schema_prompt, **kwargs)
+        
+        tool_use = None
+        for block in response.content:
+            if block.type == "tool_use":
+                tool_use = block
+                break
+        
+        if not tool_use:
+            raise ProviderError(
+                "No tool call in response. The model did not return structured data."
+            )
+        
         try:
-            data = json.loads(response_text)
-            return schema.model_validate(data)
-        except (json.JSONDecodeError, Exception) as e:
-            raise ProviderError(f"Failed to parse schema: {e}") from e
+            return schema.model_validate(tool_use.input)
+        except Exception as e:
+            raise ProviderError(f"Schema validation failed: {e}") from e
 
     @property
     def model_name(self) -> str:

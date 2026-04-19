@@ -1,13 +1,15 @@
 # API Reference: Plan Models
 
-Plan models are used internally for complex operations like merging, splitting, and modifying documents.
+Plan models are used internally for complex operations like merging, splitting, and modifying documents. They are now returned via tool calling using discriminated unions.
 
 ## PlanType
 
 Enum representing the type of plan.
 
 ```python
-class PlanType(Enum):
+from enum import Enum
+
+class PlanType(str, Enum):
     CREATE = "create"
     MODIFY = "modify"
     MERGE = "merge"
@@ -20,11 +22,13 @@ class PlanType(Enum):
 Base class for all plans.
 
 ```python
-@dataclass
-class Plan:
+from pydantic import BaseModel
+
+class Plan(BaseModel):
     plan_type: PlanType
-    rationale: str
-    steps: List[PlanStep]
+    target_path: str
+    reason: str
+    priority: int = 0
 ```
 
 **Fields:**
@@ -32,44 +36,63 @@ class Plan:
 | Field | Type | Description |
 |-------|------|-------------|
 | `plan_type` | `PlanType` | Type of plan |
-| `rationale` | `str` | Why this plan was created |
-| `steps` | `list[PlanStep]` | Steps to execute |
+| `target_path` | `str` | Target document path |
+| `reason` | `str` | Why this plan was created |
+| `priority` | `int` | Execution priority (0 = normal) |
 
 ## CreatePlan
 
 A plan for creating new documents.
 
 ```python
-@dataclass
+from typing import List
+from outowiki.models.content import DocumentMetadata
+
 class CreatePlan(Plan):
-    plan_type: PlanType = PlanType.CREATE
-    target_path: str = ""
-    initial_content: str = ""
+    plan_type: Literal[PlanType.CREATE] = PlanType.CREATE
+    content: str
+    metadata: DocumentMetadata
+    backlinks_to_add: List[str] = []
 ```
+
+**Additional Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `str` | Document content |
+| `metadata` | `DocumentMetadata` | Document metadata |
+| `backlinks_to_add` | `list[str]` | Backlinks to create |
 
 ## ModifyPlan
 
 A plan for modifying existing documents.
 
 ```python
-@dataclass
+from typing import Any, Dict
+
 class ModifyPlan(Plan):
-    plan_type: PlanType = PlanType.MODIFY
-    target_path: str = ""
-    modifications: List[str] = field(default_factory=list)
+    plan_type: Literal[PlanType.MODIFY] = PlanType.MODIFY
+    modifications: List[Dict[str, Any]]
+    backlinks_to_update: List[str] = []
 ```
+
+**Additional Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `modifications` | `list[dict]` | Modification operations |
+| `backlinks_to_update` | `list[str]` | Backlinks to update |
 
 ## MergePlan
 
 A plan for merging multiple documents into one.
 
 ```python
-@dataclass
 class MergePlan(Plan):
-    plan_type: PlanType = PlanType.MERGE
-    source_paths: List[str] = field(default_factory=list)
-    target_path: str = ""
-    merge_strategy: str = "append"
+    plan_type: Literal[PlanType.MERGE] = PlanType.MERGE
+    source_paths: List[str]
+    merged_content: str
+    redirect_sources: bool = True
 ```
 
 **Additional Fields:**
@@ -77,45 +100,62 @@ class MergePlan(Plan):
 | Field | Type | Description |
 |-------|------|-------------|
 | `source_paths` | `list[str]` | Documents to merge |
-| `target_path` | `str` | Destination document |
-| `merge_strategy` | `str` | How to merge: "append", "interleave", "replace" |
+| `merged_content` | `str` | Resulting merged content |
+| `redirect_sources` | `bool` | Create redirects for sources |
 
 ## SplitPlan
 
 A plan for splitting a document into multiple parts.
 
 ```python
-@dataclass
 class SplitPlan(Plan):
-    plan_type: PlanType = PlanType.SPLIT
-    source_path: str = ""
-    split_points: List[int] = field(default_factory=list)
-    target_paths: List[str] = field(default_factory=list)
+    plan_type: Literal[PlanType.SPLIT] = PlanType.SPLIT
+    sections_to_split: List[Dict[str, str]]
+    summary_for_main: str
 ```
 
 **Additional Fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `source_path` | `str` | Document to split |
-| `split_points` | `list[int]` | Character offsets for split points |
-| `target_paths` | `list[str]` | Destination paths for parts |
+| `sections_to_split` | `list[dict]` | Sections to extract |
+| `summary_for_main` | `str` | Summary for main document |
 
 ## DeletePlan
 
 A plan for deleting documents.
 
 ```python
-@dataclass
+from typing import Optional
+
 class DeletePlan(Plan):
-    plan_type: PlanType = PlanType.DELETE
-    target_paths: List[str] = field(default_factory=list)
+    plan_type: Literal[PlanType.DELETE] = PlanType.DELETE
     remove_backlinks: bool = True
+    redirect_to: Optional[str] = None
 ```
 
 **Additional Fields:**
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `target_paths` | `list[str]` | Documents to delete |
-| `remove_backlinks` | `bool` | Whether to clean up backlinks |
+| `remove_backlinks` | `bool` | Clean up backlinks |
+| `redirect_to` | `str \| None` | Redirect target |
+
+## PlanResponse
+
+Response wrapper used by tool calling to return structured plan data.
+
+```python
+from typing import Annotated, Union
+from pydantic import Field
+
+PlanUnion = Annotated[
+    Union[CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan],
+    Field(discriminator="plan_type")
+]
+
+class PlanResponse(BaseModel):
+    plans: List[PlanUnion]
+```
+
+This allows the LLM to return multiple plans of different types in a single tool call.

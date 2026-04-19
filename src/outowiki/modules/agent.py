@@ -140,41 +140,10 @@ class InternalAgent:
             self.logger.debug("Using standard planning prompt")
 
         self.logger.debug("Calling LLM for plan generation...")
-        response = self.provider.complete(prompt)
-        self.logger.debug(f"LLM response length: {len(response)} characters")
-
-        # Parse response as list of plans
-        try:
-            data = json.loads(response)
-            if isinstance(data, dict):
-                data = [data]
-
-            plans: list[Plan] = []
-            for plan_data in data:
-                plan_type = plan_data.get('plan_type', 'create')
-                self.logger.debug(f"Parsing plan: {plan_type}")
-                
-                if plan_type in ('create', 'CREATE'):
-                    from ..models.plans import CreatePlan
-                    plans.append(CreatePlan(**plan_data))
-                elif plan_type in ('modify', 'MODIFY'):
-                    from ..models.plans import ModifyPlan
-                    plans.append(ModifyPlan(**plan_data))
-                elif plan_type in ('merge', 'MERGE'):
-                    from ..models.plans import MergePlan
-                    plans.append(MergePlan(**plan_data))
-                elif plan_type in ('split', 'SPLIT'):
-                    from ..models.plans import SplitPlan
-                    plans.append(SplitPlan(**plan_data))
-                elif plan_type in ('delete', 'DELETE'):
-                    from ..models.plans import DeletePlan
-                    plans.append(DeletePlan(**plan_data))
-
-            self.logger.debug(f"Generated {len(plans)} plans")
-            return plans
-        except (json.JSONDecodeError, ValidationError) as e:
-            self.logger.error(f"Failed to parse plans: {e}")
-            raise ProviderError(f"Failed to parse plans: {e}") from e
+        from ..models.plans import PlanResponse
+        plan_response = self._call_with_schema(prompt, PlanResponse)
+        self.logger.debug(f"Generated {len(plan_response.plans)} plans")
+        return plan_response.plans
 
     def generate_document(
         self,

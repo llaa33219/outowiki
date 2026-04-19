@@ -192,15 +192,21 @@ class TestOpenAIProviderCompleteWithSchema:
 
     @patch("outowiki.providers.openai.OpenAI")
     def test_complete_with_schema_returns_model(self, mock_openai_cls):
-        """complete_with_schema parses JSON and returns a validated model."""
-        payload = json.dumps({"name": "alice", "value": 42})
+        """complete_with_schema uses tool calling and returns a validated model."""
+        payload = {"name": "alice", "value": 42}
+
+        mock_tool_call = MagicMock()
+        mock_tool_call.function.parsed_arguments = SampleSchema(**payload)
+
+        mock_message = MagicMock()
+        mock_message.tool_calls = [mock_tool_call]
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = payload
+        mock_response.choices[0].message = mock_message
 
         provider = OpenAIProvider(api_key="k")
-        provider.client.chat.completions.create.return_value = mock_response
+        provider.client.chat.completions.parse.return_value = mock_response
 
         result = provider.complete_with_schema("describe", SampleSchema)
         assert isinstance(result, SampleSchema)
@@ -208,36 +214,44 @@ class TestOpenAIProviderCompleteWithSchema:
         assert result.value == 42
 
     @patch("outowiki.providers.openai.OpenAI")
-    def test_complete_with_schema_raises_on_invalid_json(self, mock_openai_cls):
-        """complete_with_schema raises ProviderError on non-JSON response."""
+    def test_complete_with_schema_raises_on_no_tool_call(self, mock_openai_cls):
+        """complete_with_schema raises ProviderError when no tool call in response."""
+        mock_message = MagicMock()
+        mock_message.tool_calls = []
+
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = "not json at all"
+        mock_response.choices[0].message = mock_message
 
         provider = OpenAIProvider(api_key="k")
-        provider.client.chat.completions.create.return_value = mock_response
+        provider.client.chat.completions.parse.return_value = mock_response
 
-        with pytest.raises(ProviderError, match="Failed to parse schema"):
+        with pytest.raises(ProviderError, match="No tool call in response"):
             provider.complete_with_schema("describe", SampleSchema)
 
     @patch("outowiki.providers.openai.OpenAI")
-    def test_complete_with_schema_appends_schema_to_prompt(self, mock_openai_cls):
-        """complete_with_schema appends the JSON schema to the prompt."""
-        payload = json.dumps({"name": "bob", "value": 7})
+    def test_complete_with_schema_uses_tools_parameter(self, mock_openai_cls):
+        """complete_with_schema passes tools parameter to API."""
+        mock_tool_call = MagicMock()
+        mock_tool_call.function.parsed_arguments = SampleSchema(name="test", value=1)
+
+        mock_message = MagicMock()
+        mock_message.tool_calls = [mock_tool_call]
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
-        mock_response.choices[0].message.content = payload
+        mock_response.choices[0].message = mock_message
 
         provider = OpenAIProvider(api_key="k")
-        provider.client.chat.completions.create.return_value = mock_response
+        provider.client.chat.completions.parse.return_value = mock_response
 
         provider.complete_with_schema("my prompt", SampleSchema)
 
-        call_args = provider.client.chat.completions.create.call_args
+        call_args = provider.client.chat.completions.parse.call_args
+        assert "tools" in call_args.kwargs
+        assert len(call_args.kwargs["tools"]) == 1
         messages = call_args.kwargs["messages"]
         assert "my prompt" in messages[0]["content"]
-        assert "Respond with valid JSON" in messages[0]["content"]
 
 
 # ---------------------------------------------------------------------------
@@ -367,11 +381,15 @@ class TestAnthropicProviderCompleteWithSchema:
 
     @patch("outowiki.providers.anthropic.Anthropic")
     def test_complete_with_schema_returns_model(self, mock_anthropic_cls):
-        """complete_with_schema parses JSON and returns a validated model."""
-        payload = json.dumps({"name": "bob", "value": 99})
+        """complete_with_schema uses tool calling and returns a validated model."""
+        payload = {"name": "bob", "value": 99}
+
+        mock_tool_use = MagicMock()
+        mock_tool_use.type = "tool_use"
+        mock_tool_use.input = payload
 
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text=payload)]
+        mock_response.content = [mock_tool_use]
 
         provider = AnthropicProvider(api_key="k")
         provider.client.messages.create.return_value = mock_response
@@ -382,13 +400,52 @@ class TestAnthropicProviderCompleteWithSchema:
         assert result.value == 99
 
     @patch("outowiki.providers.anthropic.Anthropic")
-    def test_complete_with_schema_raises_on_invalid_json(self, mock_anthropic_cls):
-        """complete_with_schema raises ProviderError on non-JSON response."""
+    def test_complete_with_schema_raises_on_no_tool_call(self, mock_anthropic_cls):
+        """complete_with_schema raises ProviderError when no tool_use in response."""
+        mock_text_block = MagicMock()
+        mock_text_block.type = "text"
+        mock_text_block.text = "some text"
+
         mock_response = MagicMock()
-        mock_response.content = [MagicMock(text="not valid json")]
+        mock_response.content = [mock_text_block]
 
         provider = AnthropicProvider(api_key="k")
         provider.client.messages.create.return_value = mock_response
 
-        with pytest.raises(ProviderError, match="Failed to parse schema"):
+        with pytest.raises(ProviderError, match="No tool call in response"):
+            provider.complete_with_schema("describe", SampleSchema)
+
+    @patch("outowiki.providers.anthropic.Anthropic")
+    def test_complete_with_schema_uses_tools_parameter(self, mock_anthropic_cls):
+        """complete_with_schema passes tools parameter to API."""
+        mock_tool_use = MagicMock()
+        mock_tool_use.type = "tool_use"
+        mock_tool_use.input = {"name": "test", "value": 1}
+
+        mock_response = MagicMock()
+        mock_response.content = [mock_tool_use]
+
+        provider = AnthropicProvider(api_key="k")
+        provider.client.messages.create.return_value = mock_response
+
+        provider.complete_with_schema("my prompt", SampleSchema)
+
+        call_args = provider.client.messages.create.call_args
+        assert "tools" in call_args.kwargs
+        assert len(call_args.kwargs["tools"]) == 1
+
+    @patch("outowiki.providers.anthropic.Anthropic")
+    def test_complete_with_schema_raises_on_invalid_json(self, mock_anthropic_cls):
+        """complete_with_schema raises ProviderError on non-tool response."""
+        mock_text_block = MagicMock()
+        mock_text_block.type = "text"
+        mock_text_block.text = "not valid json"
+
+        mock_response = MagicMock()
+        mock_response.content = [mock_text_block]
+
+        provider = AnthropicProvider(api_key="k")
+        provider.client.messages.create.return_value = mock_response
+
+        with pytest.raises(ProviderError, match="No tool call in response"):
             provider.complete_with_schema("describe", SampleSchema)
