@@ -50,7 +50,8 @@ def wiki_config(tmp_path):
         provider="openai",
         api_key="test-key",
         model="gpt-4",
-        wiki_path=str(tmp_path / "test_wiki")
+        wiki_path=str(tmp_path / "test_wiki"),
+        settings={"init_default_folders": False}
     )
 
 

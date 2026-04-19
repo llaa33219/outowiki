@@ -62,7 +62,7 @@ def agent(mock_provider):
 def wiki_store(tmp_path):
     wiki_dir = tmp_path / "test_wiki"
     wiki_dir.mkdir()
-    return WikiStore(str(wiki_dir))
+    return WikiStore(str(wiki_dir), init_default_folders=False)
 
 
 @pytest.fixture
