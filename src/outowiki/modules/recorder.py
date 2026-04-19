@@ -233,29 +233,39 @@ class Recorder:
         )
 
     def _execute_create(self, plan: CreatePlan) -> None:
-        """Execute a create plan."""
+        category = plan.metadata.category
+        target_path = plan.target_path
+        
+        if not category:
+            category = self.wiki.default_category
+            self.logger.debug(f"Category is empty, using default: {category}")
+        
+        if '/' not in target_path:
+            target_path = f"{category}/{target_path}"
+            self.logger.debug(f"Target path has no folder, using: {target_path}")
+        
         content = self.agent.generate_document(
             content=plan.content,
             title=plan.metadata.title,
-            category=plan.metadata.category,
+            category=category,
             tags=plan.metadata.tags,
             related=plan.metadata.related
         )
 
         doc = WikiDocument(
-            path=plan.target_path,
+            path=target_path,
             title=plan.metadata.title,
             content=content,
             frontmatter={},
             created=datetime.now(),
             modified=datetime.now(),
             tags=plan.metadata.tags,
-            category=plan.metadata.category,
+            category=category,
             related=plan.metadata.related
         )
 
-        self.wiki.write_document(plan.target_path, doc)
-        self.wiki.save_version(plan.target_path, "create")
+        self.wiki.write_document(target_path, doc)
+        self.wiki.save_version(target_path, "create")
 
     def _execute_modify(self, plan: ModifyPlan) -> None:
         """Execute a modify plan."""
@@ -387,22 +397,22 @@ class Recorder:
             remove_backlinks=plan.remove_backlinks
         )
 
-    def _get_categories(self) -> List[str]:
-        """Get list of existing categories."""
+    def _get_categories(self, max_depth: int = 4) -> List[str]:
         categories = []
+        self._collect_categories("", categories, 0, max_depth)
+        return categories
+
+    def _collect_categories(self, path: str, categories: List[str], depth: int, max_depth: int) -> None:
+        if depth >= max_depth:
+            return
         try:
-            root_content = self.wiki.list_folder("")
-            for folder in root_content['folders']:
-                categories.append(folder)
-                try:
-                    sub_content = self.wiki.list_folder(folder)
-                    for subfolder in sub_content['folders']:
-                        categories.append(f"{folder}/{subfolder}")
-                except WikiStoreError:
-                    pass
+            content = self.wiki.list_folder(path)
+            for folder in content['folders']:
+                folder_path = f"{path}/{folder}" if path else folder
+                categories.append(folder_path)
+                self._collect_categories(folder_path, categories, depth + 1, max_depth)
         except WikiStoreError:
             pass
-        return categories
 
     def _get_recent_docs(self) -> List[str]:
         """Get list of recently modified documents."""

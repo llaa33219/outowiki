@@ -74,13 +74,17 @@ class InternalAgent:
         if content_type == "conversation":
             prompt = CONVERSATION_ANALYSIS_PROMPT.format(
                 content=content,
-                context=ctx.get('context', 'General conversation')
+                context=ctx.get('context', 'General conversation'),
+                categories=ctx.get('categories', []),
+                recent_docs=ctx.get('recent_docs', [])
             )
         elif content_type == "agent_internal":
             prompt = LEARNING_ANALYSIS_PROMPT.format(
                 content=content,
                 context=ctx.get('context', 'Agent internal'),
-                previous_attempts=ctx.get('previous_attempts', 'None')
+                previous_attempts=ctx.get('previous_attempts', 'None'),
+                categories=ctx.get('categories', []),
+                recent_docs=ctx.get('recent_docs', [])
             )
         else:
             prompt = ANALYSIS_PROMPT.format(

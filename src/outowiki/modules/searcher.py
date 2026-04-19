@@ -299,18 +299,19 @@ Respond with JSON matching IntentAnalysis schema."""
         self.logger.debug(f"Results ready: {len(result.paths)} paths")
         return result
 
-    def _get_categories(self) -> List[str]:
+    def _get_categories(self, max_depth: int = 4) -> List[str]:
         categories: List[str] = []
+        self._collect_categories("", categories, 0, max_depth)
+        return categories
+
+    def _collect_categories(self, path: str, categories: List[str], depth: int, max_depth: int) -> None:
+        if depth >= max_depth:
+            return
         try:
-            root_content = self.wiki.list_folder("")
-            for folder in root_content['folders']:
-                categories.append(folder)
-                try:
-                    sub_content = self.wiki.list_folder(folder)
-                    for subfolder in sub_content['folders']:
-                        categories.append(f"{folder}/{subfolder}")
-                except WikiStoreError:
-                    pass
+            content = self.wiki.list_folder(path)
+            for folder in content['folders']:
+                folder_path = f"{path}/{folder}" if path else folder
+                categories.append(folder_path)
+                self._collect_categories(folder_path, categories, depth + 1, max_depth)
         except WikiStoreError:
             pass
-        return categories
