@@ -57,3 +57,5 @@ plan = agent.analyze_intent(user_request)
 | `execute_plan(plan)` | Execute a plan |
 | `merge(documents)` | Merge multiple documents |
 | `split(document, points)` | Split document at points |
+| `generate_document(content, title, category, tags, related)` | Generate document via tool calls |
+| `generate_summary(content)` | Generate summary via tool calls |

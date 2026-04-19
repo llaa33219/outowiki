@@ -139,3 +139,35 @@ class RecordResult:
 | `actions_taken` | `list[str]` | List of actions performed |
 | `documents_affected` | `list[str]` | Documents created or modified |
 | `error` | `str` | Error message if failed |
+
+## DocumentGeneration
+
+Generated document content returned via tool calls.
+
+```python
+@dataclass
+class DocumentGeneration:
+    content: str
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `str` | Generated markdown document content |
+
+## SummaryGeneration
+
+Generated summary content returned via tool calls.
+
+```python
+@dataclass
+class SummaryGeneration:
+    summary: str
+```
+
+**Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `summary` | `str` | Generated summary text |

@@ -64,6 +64,16 @@ doc = wiki.get_document("preferences/ui.md")
 print(doc.backlinks)  # Should include conversation references
 ```
 
+## Document Generation
+
+OutoWiki uses tool calls (function calling) for document generation instead of parsing text responses. This provides:
+
+- **Structured output** - Guaranteed valid markdown format
+- **Type safety** - Pydantic schema validation
+- **Reliability** - No parsing errors from free-form text
+
+The `InternalAgent.generate_document()` method returns `DocumentGeneration` schema via tool calls.
+
 ## Document Classification Rules
 
 OutoWiki follows hierarchical classification guidelines inspired by 나무위키 and Wikipedia:

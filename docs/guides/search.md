@@ -58,6 +58,16 @@ for path, doc in results.documents.items():
     print(doc.content)
 ```
 
+## Summary Generation
+
+When `return_mode="summary"` or `return_mode="full"`, OutoWiki generates summaries using tool calls (function calling). This provides:
+
+- **Structured output** - Guaranteed valid summary format
+- **Type safety** - Pydantic schema validation
+- **Consistency** - Summaries follow a defined structure
+
+The `InternalAgent.generate_summary()` method returns `SummaryGeneration` schema via tool calls.
+
 ## Iterative Refinement
 
 Refine searches based on initial results:

@@ -38,6 +38,15 @@ config = WikiConfig(
 | `wiki_path` | `str` | `"./wiki"` | Path to wiki folder |
 | `settings` | `WikiSettings` | See WikiSettings | Behavior settings |
 
+### Tool Call Support
+
+OutoWiki uses tool calls (function calling) for document generation and summary generation. This requires:
+
+- **OpenAI**: Models with function calling support (GPT-4, GPT-3.5-turbo, etc.)
+- **Anthropic**: Models with tool use support (Claude 3, Claude 2.1, etc.)
+
+The provider must support structured output via tool calls for reliable operation.
+
 ### Class Methods
 
 ```python
