@@ -31,15 +31,25 @@ class WikiStore:
         store.write_document("users/alice/notes.md", new_doc)
     """
 
-    def __init__(self, root_path: str | Path):
-        """Initialize wiki store.
-
-        Args:
-            root_path: Root directory for wiki storage
-        """
+    def __init__(self, root_path: str | Path, default_category: str = "unassigned", init_default_folders: bool = True):
         self.root = Path(root_path).resolve()
+        self.default_category = default_category
         ensure_directory(self.root)
         self.backlinks = BacklinkManager(self.root)
+        
+        if init_default_folders:
+            self._init_default_folders()
+
+    def _init_default_folders(self):
+        default_folders = ["users", "tools", "agent", "knowledge", "history", self.default_category]
+        for folder in default_folders:
+            folder_path = self.root / folder
+            if not folder_path.exists():
+                ensure_directory(folder_path)
+                readme_path = folder_path / "README.md"
+                if not readme_path.exists():
+                    readme_content = f"# {folder.title()}\n\nThis folder contains {folder}-related documents.\n"
+                    write_file(readme_path, readme_content)
 
     def _doc_path(self, path: str) -> Path:
         """Convert relative path to absolute, ensuring .md extension."""

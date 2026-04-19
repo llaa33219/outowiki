@@ -96,9 +96,12 @@ class OutoWiki:
         return masked
 
     def _initialize(self) -> None:
-        """Initialize internal components."""
         self._provider = self._create_provider()
-        self._store = WikiStore(self.config.wiki_path)
+        self._store = WikiStore(
+            self.config.wiki_path,
+            default_category=self.config.settings.default_category,
+            init_default_folders=self.config.settings.init_default_folders
+        )
         self._agent = InternalAgent(self._provider, self.logger)
         self._recorder = Recorder(self._store, self._agent, self.logger)
         self._searcher = Searcher(self._store, self._agent, self.logger)
