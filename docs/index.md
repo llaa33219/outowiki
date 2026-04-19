@@ -35,21 +35,32 @@ The system has three main components:
 
 ### Wiki Structure
 
-OutoWiki organizes knowledge as markdown files in a folder hierarchy:
+OutoWiki organizes knowledge as markdown files in a folder hierarchy. When initialized, default category folders are created automatically:
 
 ```
 wiki/
-├── index.md              # Auto-generated category index
-├── conversations/
-│   ├── 2024-01-15_001.md
-│   └── 2024-01-16_001.md
-├── projects/
-│   ├── project-alpha.md
-│   └── notes/
-│       └── planning.md
-└── concepts/
-    ├── python.md
-    └── web-development.md
+├── users/
+│   └── {username}/
+│       ├── profile.md
+│       └── preferences/
+│           └── {topic}.md
+├── tools/
+│   └── {toolname}/
+│       ├── overview.md
+│       └── usage.md
+├── agent/
+│   ├── identity/
+│   ├── learning/
+│   └── memory/
+├── knowledge/
+│   └── {domain}/
+│       └── {subdomain}/
+│           └── {topic}.md
+├── history/
+│   └── sessions/
+│       └── {date}.md
+└── unassigned/
+    └── {documents}.md
 ```
 
 Documents support backlinks using the `[[Document Name]]` syntax. When `auto_backlinks` is enabled, OutoWiki automatically updates related documents when new content references existing topics.

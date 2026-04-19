@@ -19,7 +19,9 @@ config = WikiConfig(
         token_threshold=4000,
         stub_threshold=300,
         auto_backlinks=True,
-        auto_index=True
+        auto_index=True,
+        default_category="unassigned",
+        init_default_folders=True
     )
 )
 ```
@@ -73,3 +75,5 @@ Fine-tuning for wiki behavior.
 | `stub_threshold` | `int` | `300` | Minimum content before document is considered a stub |
 | `auto_backlinks` | `bool` | `true` | Automatically update backlinks when recording |
 | `auto_index` | `bool` | `true` | Auto-generate category index files |
+| `default_category` | `str` | `"unassigned"` | Default category when classification fails |
+| `init_default_folders` | `bool` | `true` | Create default category folders on initialization |
