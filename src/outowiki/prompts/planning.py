@@ -9,8 +9,23 @@ Current Wiki State:
 - Documents that might be affected: {affected_docs}
 - Document contents (summaries): {doc_summaries}
 
+CLASSIFICATION RULES (나무위키/Wikipedia guidelines):
+1. Every document MUST be placed in a category folder - NEVER at root level
+2. target_path MUST include FULL category hierarchy (e.g., "knowledge/programming/python/oop")
+3. Use MOST SPECIFIC category that matches (lowest level in hierarchy)
+4. If parent category has 20+ documents, CREATE subcategory for organization
+5. Max depth: 4 levels. If deeper needed, restructure hierarchy
+6. Category naming: lowercase, underscores, singular nouns
+7. Example hierarchy:
+   - users/{{username}}/profile.md
+   - users/{{username}}/preferences/{{topic}}.md
+   - tools/{{toolname}}/usage.md
+   - knowledge/{{domain}}/{{subdomain}}/{{topic}}.md
+   - agent/{{aspect}}/{{detail}}.md
+   - history/{{type}}/{{date}}.md
+
 Create a plan with one or more of these actions:
-1. CREATE: New document at appropriate location
+1. CREATE: New document at appropriate location (MUST include full category path)
 2. MODIFY: Update existing document with new information
 3. MERGE: Combine multiple related documents
 4. SPLIT: Break large document into smaller ones
@@ -21,6 +36,8 @@ Consider:
 - Maintain backlink integrity
 - Follow wiki naming conventions (lowercase, underscores)
 - Keep documents under 4000 tokens when possible
+- Ensure target_path has proper category hierarchy
+- Consider creating subcategories if parent is crowded (20+ docs)
 
 Respond with a list of Plan objects in JSON format."""
 
