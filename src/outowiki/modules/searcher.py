@@ -209,22 +209,22 @@ Respond with JSON matching IntentAnalysis schema."""
 
         if query_lower in doc.title.lower():
             score += 0.5
-            self.logger.debug(f"Title match: +0.5")
+            self.logger.debug("Title match: +0.5")
 
         content_lower = doc.content.lower()
         if query_lower in content_lower:
             score += 0.3
-            self.logger.debug(f"Content match: +0.3")
+            self.logger.debug("Content match: +0.3")
 
         for tag in doc.tags:
             if query_lower in tag.lower():
                 score += 0.2
-                self.logger.debug(f"Tag match: +0.2")
+                self.logger.debug("Tag match: +0.2")
                 break
 
         if query_lower in doc.category.lower():
             score += 0.1
-            self.logger.debug(f"Category match: +0.1")
+            self.logger.debug("Category match: +0.1")
 
         if intent.information_type:
             type_keywords = {
