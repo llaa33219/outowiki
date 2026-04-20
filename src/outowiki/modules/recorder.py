@@ -94,6 +94,31 @@ class Recorder:
             self.logger.debug(f"Recording content: {raw_content[:100]}...")
             self.logger.debug(f"Content type: {content_type}, Context: {context}")
 
+            topics = self._split_topics(raw_content)
+            if len(topics) > 1:
+                self.logger.debug(f"Multiple topics detected: {len(topics)}")
+                all_actions = []
+                all_affected = []
+                
+                for i, topic in enumerate(topics, 1):
+                    self.logger.debug(f"Processing topic {i}/{len(topics)}: {topic[:50]}...")
+                    topic_result = self._process_single_topic(topic, content_type, context.copy())
+                    all_actions.extend(topic_result.actions_taken)
+                    all_affected.extend(topic_result.documents_affected)
+                
+                return RecordResult(
+                    success=len(all_actions) > 0,
+                    actions_taken=all_actions,
+                    documents_affected=list(set(all_affected))
+                )
+            
+            existing_doc_path = self._find_existing_document(raw_content)
+            if existing_doc_path:
+                self.logger.debug(f"Found existing document: {existing_doc_path}")
+                existing_doc = self.wiki.read_document(existing_doc_path)
+                context['existing_doc_path'] = existing_doc_path
+                context['existing_doc_content'] = existing_doc.content
+
             analysis = self._analyze(raw_content, content_type, context)
             self.logger.debug(f"Analysis result: {analysis}")
 
@@ -113,6 +138,70 @@ class Recorder:
                 documents_affected=[],
                 error=str(e)
             )
+
+    def _classify_topic(self, content: str) -> Optional[str]:
+        category_tree = self._explore_category_tree()
+        
+        def format_tree(tree, indent=0):
+            lines = []
+            if tree['category']:
+                lines.append("  " * indent + f"- {tree['category']}/ ({len(tree['files'])} files)")
+            for sub in tree['subcategories']:
+                lines.extend(format_tree(sub, indent + 1))
+            return lines
+        
+        tree_lines = format_tree(category_tree)
+        tree_str = "\n".join(tree_lines) if tree_lines else "(빈 분류 트리 - 새 분류를 생성하세요)"
+        
+        prompt = f"""Analyze this content and determine which category it belongs to.
+
+Content: {content[:500]}
+
+Available category tree:
+{tree_str}
+
+Determine the SINGLE most specific category this content belongs to.
+If no existing category fits well, suggest a NEW category path (e.g., "programming/python/web").
+
+Return the category path (e.g., "programming/python/web")."""
+        
+        try:
+            result = self.agent._call_with_schema(prompt, type('CategoryResult', (), {'category': ''}))
+            if hasattr(result, 'category') and result.category:
+                self._create_category_if_needed(result.category)
+                return result.category
+        except Exception as e:
+            self.logger.debug(f"Topic classification failed: {e}")
+        
+        return None
+
+    def _find_document_in_category(self, category: str, content: str) -> Optional[str]:
+        try:
+            folder_content = self.wiki.list_folder(category)
+            if folder_content['files']:
+                self.logger.debug(f"Found documents in category {category}: {folder_content['files']}")
+                return f"{category}/{folder_content['files'][0]}"
+        except WikiStoreError:
+            pass
+        
+        subcategories = [c for c in self._get_categories() if c.startswith(category + '/')]
+        for subcat in subcategories:
+            try:
+                folder_content = self.wiki.list_folder(subcat)
+                if folder_content['files']:
+                    self.logger.debug(f"Found documents in subcategory {subcat}: {folder_content['files']}")
+                    return f"{subcat}/{folder_content['files'][0]}"
+            except WikiStoreError:
+                continue
+        
+        return None
+
+    def _parse_wikilinks(self, content: str) -> List[str]:
+        import re
+        pattern = r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]'
+        links = re.findall(pattern, content)
+        self.logger.debug(f"Parsed wikilinks: {links}")
+        return links
 
     def _analyze(
         self,
@@ -158,8 +247,8 @@ class Recorder:
         for doc_path in analysis.target_documents:
             try:
                 doc = self.wiki.read_document(doc_path)
-                affected_docs[doc_path] = doc.content[:500]
-                self.logger.debug(f"Affected document: {doc_path}")
+                affected_docs[doc_path] = doc.content
+                self.logger.debug(f"Affected document: {doc_path} (full content: {len(doc.content)} chars)")
             except WikiStoreError:
                 self.logger.debug(f"Document not found: {doc_path}")
 
@@ -284,6 +373,8 @@ class Recorder:
                 doc.content += f"\n\n{mod_body}"
             elif operation == 'prepend':
                 doc.content = f"{mod_body}\n\n{doc.content}"
+            elif operation == 'append_section_after':
+                doc.content = self._append_section_after(doc.content, section, mod_body)
             elif operation == 'replace_section':
                 sections = extract_sections(doc.content)
                 target_level = None
@@ -431,3 +522,218 @@ class Recorder:
             return docs
         except Exception:
             return []
+
+    def _find_existing_document(self, content: str) -> Optional[str]:
+        wikilinks = self._parse_wikilinks(content)
+        for link in wikilinks:
+            normalized = link.replace(' ', '_').lower()
+            if self.wiki.document_exists(normalized):
+                self.logger.debug(f"Found via wikilink: {normalized}")
+                return normalized
+            if self.wiki.document_exists(link):
+                self.logger.debug(f"Found via wikilink: {link}")
+                return link
+
+        topic_category = self._classify_topic(content)
+        if topic_category:
+            doc_path = self._find_document_in_category(topic_category, content)
+            if doc_path:
+                return doc_path
+
+        return None
+
+    def _extract_keywords(self, content: str) -> List[str]:
+        """
+        텍스트에서 키워드 추출 (간단한 구현)
+        
+        명사구, 고유명사 패턴 추출
+        """
+        import re
+        
+        content_lower = content.lower()
+        
+        known_terms = [
+            'camera', 'react native', 'expo', 'ios', 'android',
+            'python', 'javascript', 'typescript', 'flask', 'django',
+            'api', 'rest', 'graphql', 'database', 'sql', 'mongodb',
+            'auth', 'jwt', 'oauth', 'security', 'performance',
+            'error', 'bug', 'crash', 'debug', 'test',
+        ]
+        
+        found_keywords = []
+        for term in known_terms:
+            if term in content_lower:
+                found_keywords.append(term)
+        
+        words = re.findall(r'\b[a-z]{4,}\b', content_lower)
+        stop_words = {'this', 'that', 'with', 'from', 'have', 'been', 'will', 'would', 'could', 'should'}
+        meaningful_words = [w for w in words if w not in stop_words]
+        
+        word_freq = {}
+        for word in meaningful_words:
+            word_freq[word] = word_freq.get(word, 0) + 1
+        
+        top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:5]
+        found_keywords.extend([w for w, _ in top_words])
+        
+        return list(set(found_keywords))
+
+    def _category_matches(self, category: str, keywords: List[str]) -> bool:
+        category_lower = category.lower()
+        category_parts = category_lower.split('/')
+        
+        for keyword in keywords:
+            for part in category_parts:
+                if keyword in part or part in keyword:
+                    return True
+        return False
+
+    def _append_section_after(self, content: str, target_section: str, new_content: str) -> str:
+        lines = content.split('\n')
+        new_lines = []
+        inserted = False
+        target_level = None
+        
+        for i, line in enumerate(lines):
+            new_lines.append(line)
+            
+            if line.startswith('#'):
+                level = 0
+                for ch in line:
+                    if ch == '#':
+                        level += 1
+                    else:
+                        break
+                title_text = line[level:].strip()
+                
+                if title_text == target_section and not inserted:
+                    target_level = level
+                    new_lines.append('')
+                    new_lines.append(new_content)
+                    inserted = True
+                elif inserted and target_level is not None and level <= target_level:
+                    new_lines.pop()
+                    new_lines.append('')
+                    new_lines.append(new_content)
+                    new_lines.append(line)
+                    inserted = False
+        
+        if inserted:
+            new_lines.append('')
+        
+        return '\n'.join(new_lines)
+
+    def _split_topics(self, content: str) -> List[str]:
+        """
+        다중 주제 분리 (규칙 기반)
+        
+        주제 경계 패턴:
+        - [제목] 형태
+        - ## 헤딩
+        - 주제 전환 키워드: "또는", "한편", "다른 주제로", "추가로"
+        """
+        import re
+        
+        boundaries = re.split(r'\n(?=\[|\#\#)', content)
+        
+        if len(boundaries) <= 1:
+            transition_patterns = [
+                r'\n(?:또는|한편|다른 주제로|추가로|또한|그리고|마지막으로)\s',
+                r'\n\d+\.\s',
+                r'\n-\s(?=[A-Z])',
+            ]
+            
+            for pattern in transition_patterns:
+                boundaries = re.split(pattern, content)
+                if len(boundaries) > 1:
+                    break
+        
+        topics = [b.strip() for b in boundaries if b.strip() and len(b.strip()) > 20]
+        
+        if len(topics) <= 1:
+            return [content]
+        
+        self.logger.debug(f"Split into {len(topics)} topics")
+        return topics
+
+    def _process_single_topic(self, content: str, content_type: str, context: Dict[str, Any]) -> RecordResult:
+        existing_doc_path = self._find_existing_document(content)
+        if existing_doc_path:
+            self.logger.debug(f"Found existing document: {existing_doc_path}")
+            existing_doc = self.wiki.read_document(existing_doc_path)
+            context['existing_doc_path'] = existing_doc_path
+            context['existing_doc_content'] = existing_doc.content
+
+        analysis = self._analyze(content, content_type, context)
+        self.logger.debug(f"Analysis result: {analysis}")
+
+        plans = self._plan(analysis)
+        self.logger.debug(f"Generated {len(plans)} plans: {[p.plan_type for p in plans]}")
+
+        result = self._execute(plans)
+        self.logger.debug(f"Execution result: {result}")
+
+        return result
+
+    def _explore_category_tree(self, category: str = "", depth: int = 0, max_depth: int = 3) -> Dict[str, Any]:
+        if depth > max_depth:
+            return {'category': category, 'files': [], 'subcategories': [], 'truncated': True}
+        
+        try:
+            folder_content = self.wiki.list_folder(category)
+            result = {
+                'category': category,
+                'files': folder_content.get('files', []),
+                'subcategories': [],
+                'truncated': False
+            }
+            
+            for subfolder in folder_content.get('folders', []):
+                subcategory_path = f"{category}/{subfolder}" if category else subfolder
+                subcategory_result = self._explore_category_tree(subcategory_path, depth + 1, max_depth)
+                result['subcategories'].append(subcategory_result)
+            
+            self.logger.debug(f"Explored category {category}: {len(result['files'])} files, {len(result['subcategories'])} subcategories")
+            return result
+            
+        except WikiStoreError:
+            return {'category': category, 'files': [], 'subcategories': [], 'truncated': False}
+
+    def _create_category_if_needed(self, category: str) -> bool:
+        if not category:
+            return False
+        
+        try:
+            self.wiki.list_folder(category)
+            return False
+        except WikiStoreError:
+            pass
+        
+        parts = category.split('/')
+        current_path = ""
+        for part in parts:
+            current_path = f"{current_path}/{part}" if current_path else part
+            try:
+                self.wiki.list_folder(current_path)
+            except WikiStoreError:
+                self.logger.debug(f"Creating category folder: {current_path}")
+                self.wiki.create_folder(current_path)
+        
+        doc_path = f"{category}/README.md"
+        if not self.wiki.document_exists(doc_path):
+            category_name = category.split('/')[-1]
+            doc = WikiDocument(
+                path=doc_path,
+                title=category_name,
+                content=f"# {category_name}\n\n이 분류는 {category_name}에 속하는 문서들을 포함합니다.",
+                frontmatter={},
+                created=datetime.now(),
+                modified=datetime.now(),
+                tags=[],
+                category=category,
+                related=[]
+            )
+            self.wiki.write_document(doc_path, doc)
+            self.logger.debug(f"Created category README: {doc_path}")
+        
+        return True

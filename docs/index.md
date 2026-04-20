@@ -6,6 +6,25 @@ OutoWiki is a wiki-based knowledge management system designed for AI agents. It 
 
 OutoWiki solves the problem of persistent memory for AI agents by organizing information in a familiar wiki structure. Instead of opaque databases, OutoWiki uses markdown documents organized in folders, making the knowledge human-readable and editable.
 
+### Wiki-Style Classification
+
+OutoWiki follows Wikipedia/NamuWiki classification principles:
+
+- **is-a Relationship** - Determine "What is this?" not "Is this similar?"
+- **Category Tree Navigation** - Navigate hierarchical categories to find appropriate documents
+- **No Similarity Matching** - Use topic understanding, not keyword matching
+- **Explicit Document Linking** - Support `[[Document Name]]` syntax for direct connection
+
+### Key Features
+
+- **Folder-Based Classification** - Categories are folders, no preset categories forced
+- **Dynamic Category Creation** - Create new categories as needed
+- **Category Tree Exploration** - Navigate and explore category hierarchy
+- **Full Document Delivery** - Entire document content delivered to LLM (no 500-character limit)
+- **Section-Based Editing** - Wikipedia-style section editing (append, prepend, replace)
+- **Multi-Topic Splitting** - Split content with multiple topics into separate documents
+- **Wikilink Support** - Direct document connection via `[[Document Name]]` syntax
+
 ### Architecture
 
 ```
@@ -29,39 +48,31 @@ OutoWiki solves the problem of persistent memory for AI agents by organizing inf
 
 The system has three main components:
 
-- **Recorder**: Processes new content, determines document placement, manages backlinks
+- **Recorder**: Processes new content using Wiki-style topic classification (is-a relationship), determines document placement, manages backlinks
 - **Searcher**: Finds relevant documents using semantic search and intent analysis
 - **Internal Agent**: Handles complex operations like merge, split, and modify plans
 
 ### Wiki Structure
 
-OutoWiki organizes knowledge as markdown files in a folder hierarchy. When initialized, default category folders are created automatically:
+OutoWiki organizes knowledge as markdown files in a folder hierarchy. **No preset categories are forced** - the wiki starts empty and categories are created dynamically as needed:
 
 ```
-wiki/
-├── users/
-│   └── {username}/
-│       ├── profile.md
+wiki/                    # Initially empty
+├── programming/         # Created when first programming document is recorded
+│   └── mobile/
+│       └── camera.md
+├── users/               # Created when first user document is recorded
+│   └── alice/
 │       └── preferences/
-│           └── {topic}.md
-├── tools/
-│   └── {toolname}/
-│       ├── overview.md
-│       └── usage.md
-├── agent/
-│   ├── identity/
-│   ├── learning/
-│   └── memory/
-├── knowledge/
-│   └── {domain}/
-│       └── {subdomain}/
-│           └── {topic}.md
-├── history/
-│   └── sessions/
-│       └── {date}.md
-└── unassigned/
-    └── {documents}.md
+│           └── theme.md
+└── ...                  # Categories grow organically
 ```
+
+Each folder represents a category. When a document is recorded, the system:
+1. Analyzes the content to determine its topic (is-a relationship)
+2. Explores the existing category tree
+3. Finds or creates the appropriate category folder
+4. Records the document in that category
 
 Documents support backlinks using the `[[Document Name]]` syntax. When `auto_backlinks` is enabled, OutoWiki automatically updates related documents when new content references existing topics.
 

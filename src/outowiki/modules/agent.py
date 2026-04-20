@@ -58,7 +58,7 @@ class InternalAgent:
         Args:
             content: Raw input content
             content_type: Type of content (conversation, agent_internal, external, structured)
-            context: Additional context (categories, recent_docs, etc.)
+            context: Additional context (categories, recent_docs, existing_doc_path, existing_doc_content, etc.)
 
         Returns:
             AnalysisResult with extracted information
@@ -70,6 +70,16 @@ class InternalAgent:
         self.logger.debug(f"Content type: {content_type}")
         
         ctx = context or {}
+
+        existing_doc_section = ""
+        if ctx.get('existing_doc_path'):
+            existing_doc_section = f"""
+EXISTING DOCUMENT FOUND:
+- Path: {ctx['existing_doc_path']}
+- Content preview: {ctx.get('existing_doc_content', '')[:1000]}
+
+IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE if the new information should be added to this existing document.
+"""
 
         # Select appropriate prompt based on content type
         if content_type == "conversation":
@@ -91,7 +101,8 @@ class InternalAgent:
             prompt = ANALYSIS_PROMPT.format(
                 content=content,
                 categories=ctx.get('categories', []),
-                recent_docs=ctx.get('recent_docs', [])
+                recent_docs=ctx.get('recent_docs', []),
+                existing_doc_section=existing_doc_section
             )
 
         self.logger.debug(f"Using prompt type: {content_type}")

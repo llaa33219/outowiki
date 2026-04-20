@@ -8,6 +8,7 @@ Input:
 Current Wiki State:
 - Existing categories: {categories}
 - Recent documents: {recent_docs}
+{existing_doc_section}
 
 CATEGORIZATION GUIDELINES (Wikipedia-style, flexible):
 1. Category is OPTIONAL - use it when it genuinely helps organize or find information

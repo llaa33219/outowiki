@@ -261,7 +261,7 @@ class TestPlan:
         recorder._plan(analysis)
 
         affected_docs = agent.plan.call_args[0][1]
-        assert len(affected_docs["notes/long"]) <= 500
+        assert len(affected_docs["notes/long"]) == len(f"# Long Doc\n\n{long_content}")
 
 
 # ── Execute phase ─────────────────────────────────────────────────────

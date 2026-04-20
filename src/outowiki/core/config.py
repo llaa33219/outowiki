@@ -38,7 +38,7 @@ class WikiSettings(BaseModel):
     stub_threshold: int = Field(default=300, description="Stub merge threshold")
     auto_backlinks: bool = True
     auto_index: bool = True
-    default_category: str = Field(default="unassigned", description="Default category when classification fails")
+    default_category: str = Field(default="", description="Default category when classification fails (empty = must classify)")
     init_default_folders: bool = Field(default=False, description="Create default category folders on initialization")
 
 
