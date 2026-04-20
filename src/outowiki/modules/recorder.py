@@ -331,11 +331,12 @@ Return the category path (e.g., "programming/python/web")."""
         elif not category:
             self.logger.debug(f"No category specified, using target_path as-is: {target_path}")
         
-        title = plan.metadata.title or target_path.split('/')[-1].replace('_', ' ').replace('-', ' ').title()
+        if not plan.metadata.title:
+            raise ValueError("Document title is required. Please provide a title for the document.")
         
         generated_content = self.agent.generate_document(
             content=plan.content,
-            title=title,
+            title=plan.metadata.title,
             category=category or "",
             tags=plan.metadata.tags,
             related=plan.metadata.related
@@ -345,7 +346,7 @@ Return the category path (e.g., "programming/python/web")."""
 
         doc = WikiDocument(
             path=target_path,
-            title=title,
+            title=plan.metadata.title,
             content=body_content,
             frontmatter={},
             created=datetime.now(),

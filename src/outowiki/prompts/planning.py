@@ -22,6 +22,11 @@ DEPTH GUIDANCE (when you DO categorize):
 - DO: "programming/typescript/validation/zod" (specific and findable)
 - When uncertain between depth levels, go deeper rather than shallower
 
+CRITICAL REQUIREMENTS:
+- metadata.title is REQUIRED for ALL actions - you MUST provide a descriptive title
+- Title should be human-readable (e.g., "React Native Camera Setup" not "react_native_camera")
+- Title is used as the document's display name
+
 Create a plan with one or more of these actions:
 1. CREATE: New document at appropriate location (can be at root or in any folder)
 2. MODIFY: Update existing document with new information
