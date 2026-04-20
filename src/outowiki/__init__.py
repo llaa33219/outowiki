@@ -37,7 +37,7 @@ from .modules.searcher import Searcher
 from .modules.agent import InternalAgent
 from .providers.base import LLMProvider
 
-__version__ = "0.5.0"
+__version__ = "0.5.2"
 
 
 def __getattr__(name: str) -> type:
