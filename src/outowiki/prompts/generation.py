@@ -12,7 +12,8 @@ Metadata:
 - Related documents: {related}
 
 Create a well-structured markdown document with:
-1. YAML frontmatter (title, created, modified, tags, category, related)
+1. YAML frontmatter (title, tags, category, related)
+   - NOTE: created and modified dates are automatically managed by the system. Do NOT include them.
 2. Clear section headers (## for main sections)
 3. Concise, factual content
 4. Internal links to related documents using [[path]] format

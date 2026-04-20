@@ -11,7 +11,7 @@ from ..models.plans import Plan, PlanType, CreatePlan, ModifyPlan, MergePlan, Sp
 from ..core.store import WikiStore
 from .agent import InternalAgent
 from ..core.exceptions import WikiStoreError
-from ..utils.markdown import extract_sections
+from ..utils.markdown import extract_sections, parse_frontmatter
 
 
 class RecordResult:
@@ -244,7 +244,7 @@ class Recorder:
             target_path = f"{category}/{target_path}"
             self.logger.debug(f"Target path has no folder, using: {target_path}")
         
-        content = self.agent.generate_document(
+        generated_content = self.agent.generate_document(
             content=plan.content,
             title=plan.metadata.title,
             category=category,
@@ -252,10 +252,12 @@ class Recorder:
             related=plan.metadata.related
         )
 
+        _, body_content = parse_frontmatter(generated_content)
+
         doc = WikiDocument(
             path=target_path,
             title=plan.metadata.title,
-            content=content,
+            content=body_content,
             frontmatter={},
             created=datetime.now(),
             modified=datetime.now(),
@@ -277,12 +279,12 @@ class Recorder:
         for mod in plan.modifications:
             section = mod.get('section')
             operation = mod.get('operation', 'append')
-            content = mod.get('content', '')
+            _, mod_body = parse_frontmatter(mod.get('content', ''))
 
             if operation == 'append':
-                doc.content += f"\n\n{content}"
+                doc.content += f"\n\n{mod_body}"
             elif operation == 'prepend':
-                doc.content = f"{content}\n\n{doc.content}"
+                doc.content = f"{mod_body}\n\n{doc.content}"
             elif operation == 'replace_section':
                 sections = extract_sections(doc.content)
                 target_level = None
@@ -309,7 +311,7 @@ class Recorder:
                             if title_text == section and level == target_level:
                                 in_target = True
                                 new_lines.append(line)
-                                new_lines.append(content)
+                                new_lines.append(mod_body)
                                 continue
                             elif in_target:
                                 in_target = False
@@ -327,12 +329,12 @@ class Recorder:
             if self.wiki.document_exists(source_path):
                 self.wiki.save_version(source_path, "merge")
 
-        merged_content = plan.merged_content
+        _, merged_body = parse_frontmatter(plan.merged_content)
 
         doc = WikiDocument(
             path=plan.target_path,
             title=plan.target_path.split('/')[-1].replace('_', ' ').title(),
-            content=merged_content,
+            content=merged_body,
             frontmatter={},
             created=datetime.now(),
             modified=datetime.now(),
@@ -363,12 +365,12 @@ class Recorder:
         new_paths = []
         for section in plan.sections_to_split:
             new_path = section['new_path']
-            new_content = section.get('content', '')
+            _, section_body = parse_frontmatter(section.get('content', ''))
 
             doc = WikiDocument(
                 path=new_path,
                 title=new_path.split('/')[-1].replace('_', ' ').title(),
-                content=new_content,
+                content=section_body,
                 frontmatter={},
                 created=datetime.now(),
                 modified=datetime.now(),
@@ -381,7 +383,8 @@ class Recorder:
             self.wiki.save_version(new_path, "split", related=[plan.target_path])
             new_paths.append(new_path)
 
-        original.content = plan.summary_for_main
+        _, summary_body = parse_frontmatter(plan.summary_for_main)
+        original.content = summary_body
         original.related = new_paths
         self.wiki.write_document(plan.target_path, original)
 

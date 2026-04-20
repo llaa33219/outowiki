@@ -74,6 +74,10 @@ OutoWiki uses tool calls (function calling) for document generation instead of p
 
 The `InternalAgent.generate_document()` method returns `DocumentGeneration` schema via tool calls.
 
+### Frontmatter Handling
+
+Document metadata (created, modified dates) is managed automatically by the system. LLM-generated content may include YAML frontmatter, but it is stripped during processing—only the body content is kept. The system always generates fresh `created` and `modified` timestamps when writing documents.
+
 ## Document Classification Rules
 
 OutoWiki follows hierarchical classification guidelines inspired by 나무위키 and Wikipedia:

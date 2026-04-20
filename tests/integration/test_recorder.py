@@ -694,3 +694,135 @@ class TestHistoryIntegration:
         b_versions = wiki_store.get_versions("topics/section_b")
         assert len(b_versions) >= 1
         assert b_versions[0].created_by_operation.value == "split"
+
+
+class TestFrontmatterHandling:
+    def test_create_strips_frontmatter(self, recorder, wiki_store, agent):
+        """LLM-generated content with frontmatter should have body extracted only."""
+        content_with_frontmatter = """---
+title: Wrong Title
+created: 2020-01-01T00:00:00
+modified: 2020-01-01T00:00:00
+---
+
+# Correct Title
+
+This is the actual body content.
+"""
+        agent.generate_document = MagicMock(return_value=content_with_frontmatter)
+
+        plan = CreatePlan(
+            plan_type=PlanType.CREATE,
+            target_path="test/frontmatter_doc",
+            reason="Test frontmatter stripping",
+            content="Raw info",
+            metadata=DocumentMetadata(
+                title="Correct Title",
+                category="test",
+                tags=["test"],
+            ),
+        )
+
+        recorder._execute_create(plan)
+
+        doc = wiki_store.read_document("test/frontmatter_doc")
+        body = doc.content
+        assert "---" not in body
+        assert "Wrong Title" not in body
+        assert "This is the actual body content." in body
+        assert doc.title == "Correct Title"
+
+    def test_modify_strips_frontmatter(self, recorder, wiki_store):
+        """Modification content with frontmatter should have body extracted only."""
+        _write_doc(
+            wiki_store,
+            "notes/modify_fm",
+            "Modify FM Test",
+            "# Modify FM Test\n\nOriginal content.",
+        )
+
+        mod_content = """---
+title: Wrong
+---
+
+New appended content.
+"""
+        plan = ModifyPlan(
+            plan_type=PlanType.MODIFY,
+            target_path="notes/modify_fm",
+            reason="Test frontmatter in modify",
+            modifications=[
+                {"operation": "append", "content": mod_content},
+            ],
+        )
+
+        recorder._execute_modify(plan)
+
+        doc = wiki_store.read_document("notes/modify_fm")
+        assert "Original content." in doc.content
+        assert "New appended content." in doc.content
+        assert doc.content.count("---") == 0
+
+    def test_merge_strips_frontmatter(self, recorder, wiki_store):
+        """Merged content with frontmatter should have body extracted only."""
+        _write_doc(wiki_store, "src/m_a", "Doc A", "# Doc A\n\nContent A", category="src")
+        _write_doc(wiki_store, "src/m_b", "Doc B", "# Doc B\n\nContent B", category="src")
+
+        merged_with_fm = """---
+title: Merged Wrong
+---
+
+# Merged Correct
+
+Content A and Content B merged.
+"""
+        plan = MergePlan(
+            plan_type=PlanType.MERGE,
+            target_path="src/merged_fm",
+            reason="Test frontmatter in merge",
+            source_paths=["src/m_a", "src/m_b"],
+            merged_content=merged_with_fm,
+            redirect_sources=False,
+        )
+
+        recorder._execute_merge(plan)
+
+        doc = wiki_store.read_document("src/merged_fm")
+        assert "Merged Wrong" not in doc.content
+        assert "Content A and Content B merged." in doc.content
+        assert doc.content.count("---") == 0
+
+    def test_split_strips_frontmatter(self, recorder, wiki_store):
+        """Split sections and summary with frontmatter should have body extracted."""
+        _write_doc(
+            wiki_store,
+            "topics/split_fm",
+            "Split FM",
+            "# Split FM\n\nIntro.\n\n## Sec A\n\nA.\n\n## Sec B\n\nB.",
+            category="topics",
+        )
+
+        plan = SplitPlan(
+            plan_type=PlanType.SPLIT,
+            target_path="topics/split_fm",
+            reason="Test frontmatter in split",
+            sections_to_split=[
+                {"new_path": "topics/sec_a_fm", "content": "---\ntitle: Wrong A\n---\n# Sec A\n\nBody A."},
+                {"new_path": "topics/sec_b_fm", "content": "---\ntitle: Wrong B\n---\n# Sec B\n\nBody B."},
+            ],
+            summary_for_main="---\ntitle: Wrong Summary\n---\n# Split FM\n\nSee sub-docs.",
+        )
+
+        recorder._execute_split(plan)
+
+        sec_a = wiki_store.read_document("topics/sec_a_fm")
+        assert "Wrong A" not in sec_a.content
+        assert "Body A." in sec_a.content
+
+        sec_b = wiki_store.read_document("topics/sec_b_fm")
+        assert "Wrong B" not in sec_b.content
+        assert "Body B." in sec_b.content
+
+        main = wiki_store.read_document("topics/split_fm")
+        assert "Wrong Summary" not in main.content
+        assert "See sub-docs." in main.content
