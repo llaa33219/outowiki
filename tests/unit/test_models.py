@@ -221,9 +221,10 @@ class TestDocumentMetadata:
         assert meta.related == ["r1"]
         assert meta.custom == {"key": "val"}
 
-    def test_missing_title_raises(self):
-        with pytest.raises(ValidationError):
-            DocumentMetadata(category="test")
+    def test_title_is_optional(self):
+        meta = DocumentMetadata(category="test")
+        assert meta.title is None
+        assert meta.category == "test"
 
     def test_category_is_optional(self):
         doc = DocumentMetadata(title="No category")

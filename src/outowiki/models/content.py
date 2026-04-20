@@ -49,7 +49,7 @@ class DocumentMetadata(BaseModel):
     tagging, and cross-referencing information.
     """
 
-    title: str
+    title: Optional[str] = None
     tags: List[str] = []
     category: Optional[str] = None
     related: List[str] = []

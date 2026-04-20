@@ -325,16 +325,17 @@ Return the category path (e.g., "programming/python/web")."""
         category = plan.metadata.category
         target_path = plan.target_path
         
-        # If category exists and target_path has no folder, use category as path prefix
         if category and '/' not in target_path:
             target_path = f"{category}/{target_path}"
             self.logger.debug(f"Using category as path prefix: {target_path}")
         elif not category:
             self.logger.debug(f"No category specified, using target_path as-is: {target_path}")
         
+        title = plan.metadata.title or target_path.split('/')[-1].replace('_', ' ').replace('-', ' ').title()
+        
         generated_content = self.agent.generate_document(
             content=plan.content,
-            title=plan.metadata.title,
+            title=title,
             category=category or "",
             tags=plan.metadata.tags,
             related=plan.metadata.related
@@ -344,7 +345,7 @@ Return the category path (e.g., "programming/python/web")."""
 
         doc = WikiDocument(
             path=target_path,
-            title=plan.metadata.title,
+            title=title,
             content=body_content,
             frontmatter={},
             created=datetime.now(),
