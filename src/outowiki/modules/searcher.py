@@ -222,7 +222,7 @@ Respond with JSON matching IntentAnalysis schema."""
                 self.logger.debug("Tag match: +0.2")
                 break
 
-        if query_lower in doc.category.lower():
+        if doc.category and query_lower in doc.category.lower():
             score += 0.1
             self.logger.debug("Category match: +0.1")
 

@@ -246,7 +246,7 @@ class Recorder:
         generated_content = self.agent.generate_document(
             content=plan.content,
             title=plan.metadata.title,
-            category=category,
+            category=category or "",
             tags=plan.metadata.tags,
             related=plan.metadata.related
         )
