@@ -236,13 +236,12 @@ class Recorder:
         category = plan.metadata.category
         target_path = plan.target_path
         
-        if not category:
-            category = self.wiki.default_category
-            self.logger.debug(f"Category is empty, using default: {category}")
-        
-        if '/' not in target_path:
+        # If category exists and target_path has no folder, use category as path prefix
+        if category and '/' not in target_path:
             target_path = f"{category}/{target_path}"
-            self.logger.debug(f"Target path has no folder, using: {target_path}")
+            self.logger.debug(f"Using category as path prefix: {target_path}")
+        elif not category:
+            self.logger.debug(f"No category specified, using target_path as-is: {target_path}")
         
         generated_content = self.agent.generate_document(
             content=plan.content,
@@ -339,7 +338,7 @@ class Recorder:
             created=datetime.now(),
             modified=datetime.now(),
             tags=[],
-            category='/'.join(plan.target_path.split('/')[:-1]),
+            category='/'.join(plan.target_path.split('/')[:-1]) or None,
             related=plan.source_paths
         )
 
@@ -375,7 +374,7 @@ class Recorder:
                 created=datetime.now(),
                 modified=datetime.now(),
                 tags=original.tags,
-                category='/'.join(new_path.split('/')[:-1]),
+                category='/'.join(new_path.split('/')[:-1]) or None,
                 related=[plan.target_path]
             )
 

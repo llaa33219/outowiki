@@ -89,7 +89,7 @@ class WikiStore:
                 created=datetime.fromisoformat(frontmatter.get('created', datetime.now().isoformat())),
                 modified=datetime.fromisoformat(frontmatter.get('modified', datetime.now().isoformat())),
                 tags=frontmatter.get('tags', []),
-                category=frontmatter.get('category', ''),
+                category=frontmatter.get('category'),
                 related=frontmatter.get('related', [])
             )
         except WikiStoreError:
@@ -391,7 +391,7 @@ class WikiStore:
                     created=datetime.now(),
                     modified=datetime.now(),
                     tags=target_version.frontmatter.get("tags", []),
-                    category=target_version.frontmatter.get("category", ""),
+                    category=target_version.frontmatter.get("category"),
                     related=target_version.frontmatter.get("related", [])
                 )
             else:

@@ -39,7 +39,7 @@ class WikiSettings(BaseModel):
     auto_backlinks: bool = True
     auto_index: bool = True
     default_category: str = Field(default="unassigned", description="Default category when classification fails")
-    init_default_folders: bool = Field(default=True, description="Create default category folders on initialization")
+    init_default_folders: bool = Field(default=False, description="Create default category folders on initialization")
 
 
 class WikiConfig(BaseModel):

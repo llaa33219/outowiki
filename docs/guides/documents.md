@@ -1,5 +1,30 @@
 # Document Management
 
+## Flexible Categorization
+
+OutoWiki uses a flexible, Wikipedia-style categorization system:
+
+- **Categories are optional** - Documents can exist without a category
+- **No predefined structure** - Categories emerge naturally from content
+- **Deep categorization encouraged** - When categorizing, aim for 3+ levels (e.g., `programming/python/web/flask`)
+- **Quality over structure** - A well-placed deep category beats a forced shallow one
+
+### Example Category Paths
+
+| Content | Good Category Path | Why |
+|---------|-------------------|-----|
+| Flask REST API preferences | `programming/python/web/flask` | Specific, 4 levels deep |
+| TypeScript validation with zod | `programming/typescript/validation/zod` | Specific tool, findable |
+| User food preferences | `users/alice/preferences/food` | User-specific, organized |
+| General retry logic wisdom | *(uncategorized or `programming/patterns/retry`)* | Too general for deep nesting |
+
+### Guidelines
+
+1. **Aim for 3+ levels** when content is specific
+2. **Skip categorization** if uncertain - it can be organized later
+3. **Use descriptive names** - lowercase, underscores, singular nouns
+4. **Don't force structure** - let categories emerge from actual content
+
 ## Creating Documents
 
 While `record()` is the preferred method, you can create documents directly:

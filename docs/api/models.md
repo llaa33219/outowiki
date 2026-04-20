@@ -54,7 +54,7 @@ class DocumentMetadata:
     title: str
     created: datetime
     modified: datetime
-    category: str
+    category: Optional[str]
     tags: List[str]
     summary: Optional[str]
 ```
@@ -66,7 +66,7 @@ class DocumentMetadata:
 | `title` | `str` | Document title |
 | `created` | `datetime` | Creation timestamp |
 | `modified` | `datetime` | Last modification timestamp |
-| `category` | `str` | Category folder |
+| `category` | `Optional[str]` | Category folder (optional, can be None) |
 | `tags` | `list[str]` | Associated tags |
 | `summary` | `str` | Brief document summary |
 

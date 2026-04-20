@@ -225,9 +225,9 @@ class TestDocumentMetadata:
         with pytest.raises(ValidationError):
             DocumentMetadata(category="test")
 
-    def test_missing_category_raises(self):
-        with pytest.raises(ValidationError):
-            DocumentMetadata(title="No category")
+    def test_category_is_optional(self):
+        doc = DocumentMetadata(title="No category")
+        assert doc.category is None
 
 
 class TestSearchQuery:

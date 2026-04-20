@@ -9,16 +9,24 @@ Current Wiki State:
 - Existing categories: {categories}
 - Recent documents: {recent_docs}
 
-CLASSIFICATION RULES (나무위키/Wikipedia guidelines):
-1. Every document MUST belong to a category folder - no exceptions
-2. Place document in the MOST SPECIFIC (lowest-level) matching category
-3. If no existing category matches, suggest a NEW appropriate category
-4. Never leave category empty - use "unassigned" only as last resort
-5. Category hierarchy: users/{{username}}/{{subtopic}}, tools/{{toolname}}, knowledge/{{domain}}/{{subtopic}}, agent/{{aspect}}, history/{{type}}
-6. Max category depth: 4 levels
-7. When a category has 20+ documents, consider creating subcategories
-8. One document can belong to multiple categories if genuinely cross-domain
-9. Avoid: alphabetical sorting categories, non-defining characteristics, circular references
+CATEGORIZATION GUIDELINES (Wikipedia-style, flexible):
+1. Category is OPTIONAL - use it when it genuinely helps organize or find information
+2. If the content fits an existing category, use it; if not, you may suggest a new one
+3. Categories emerge from content naturally - don't force predefined hierarchies
+4. Documents can exist at any level - root, nested, or deep hierarchy
+5. Naming: lowercase, underscores, descriptive nouns
+
+DEPTH GUIDANCE (when you DO categorize):
+- Aim for 3+ levels when content is specific (domain/language/subdomain/topic)
+- DON'T: "programming/zod" (too shallow for a specific tool)
+- DO: "programming/typescript/validation/zod" (specific and findable)
+- When uncertain between depth levels, go deeper rather than shallower
+- General knowledge/wisdom can stay at 1-2 levels if no deeper fit exists
+
+EXAMPLES:
+- "Flask REST API with SQLAlchemy" → "programming/python/web/flask" (4 levels)
+- "Exponential backoff works better than fixed delays" → "programming/patterns/retry" (3 levels) or empty if too general
+- "zod for TypeScript validation" → "programming/typescript/validation/zod" (4 levels)
 
 Analyze this input and provide:
 1. information_type: What type of information is this? (conversation, agent_internal, external, structured)
@@ -29,7 +37,7 @@ Analyze this input and provide:
 6. confidence_score: How confident are you in the analysis? (0.0-1.0)
 7. importance_score: How important is this information? (0.0-1.0)
 8. suggested_action: What should we do? (CREATE, MODIFY, MERGE, SPLIT, DELETE)
-9. target_documents: Which documents should be affected? Include FULL category path (e.g., knowledge/programming/python)
+9. target_documents: Which documents should be affected? Include FULL path if categorized (e.g., "programming/python/web/flask" or just "flask_concepts" for uncategorized)
 
 Respond with valid JSON matching the AnalysisResult schema."""
 
@@ -44,11 +52,16 @@ Current Wiki State:
 - Existing categories: {categories}
 - Recent documents: {recent_docs}
 
-CLASSIFICATION RULES:
-1. Every document MUST belong to a category folder
-2. Place in MOST SPECIFIC matching category
-3. If no match, suggest new appropriate category
-4. Category hierarchy: users/{{username}}, tools/{{tool}}, knowledge/{{domain}}, agent/{{aspect}}, history/{{type}}
+CATEGORIZATION GUIDELINES:
+1. Categorization is optional - use categories when they help, not by default
+2. If existing categories fit, use them; otherwise suggest new ones organically
+3. Documents can be organized later if category is uncertain now
+
+DEPTH GUIDANCE (when you DO categorize):
+- Aim for 3+ levels for specific content (e.g., "users/alice/preferences/food")
+- DON'T: "users/alice/food" (too shallow for a preference topic)
+- DO: "users/alice/preferences/food/dietary" (specific and findable)
+- General observations can stay shallow or uncategorized
 
 Extract:
 1. User preferences or characteristics mentioned
@@ -56,7 +69,7 @@ Extract:
 3. Failed attempts or what to avoid
 4. New knowledge or facts learned
 5. Action items or follow-ups needed
-6. Appropriate category path for this information
+6. Appropriate category path (if any) for this information - can be empty
 
 Provide analysis as structured JSON."""
 
@@ -72,16 +85,20 @@ Current Wiki State:
 - Existing categories: {categories}
 - Recent documents: {recent_docs}
 
-CLASSIFICATION RULES:
-1. Every document MUST belong to a category folder
-2. Place in MOST SPECIFIC matching category (e.g., agent/learning/{{topic}})
-3. If no match, suggest new appropriate category
-4. Category hierarchy: agent/learning/{{topic}}, knowledge/{{domain}}/{{subtopic}}
+CATEGORIZATION GUIDELINES:
+1. Categorize when it helps organization; skip if too general/uncertain
+2. Let categories emerge from the content naturally
+
+DEPTH GUIDANCE (when you DO categorize):
+- Aim for 3+ levels for specific learnings (e.g., "agent/learning/patterns/retry")
+- DON'T: "agent/retry" (too shallow for a learning pattern)
+- DO: "agent/learning/patterns/retry/backoff" (specific and findable)
+- General wisdom can stay at 1-2 levels
 
 Determine:
 1. What was learned?
 2. Is this a success pattern or failure pattern?
 3. Should this be a new document or update existing?
-4. What category does this belong to? (full path)
+4. What category does this belong to? (can be empty if too general)
 
 Provide analysis as structured JSON."""

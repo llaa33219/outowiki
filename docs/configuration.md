@@ -21,7 +21,7 @@ config = WikiConfig(
         auto_backlinks=True,
         auto_index=True,
         default_category="unassigned",
-        init_default_folders=True
+        init_default_folders=False
     )
 )
 ```
@@ -85,4 +85,4 @@ Fine-tuning for wiki behavior.
 | `auto_backlinks` | `bool` | `true` | Automatically update backlinks when recording |
 | `auto_index` | `bool` | `true` | Auto-generate category index files |
 | `default_category` | `str` | `"unassigned"` | Default category when classification fails |
-| `init_default_folders` | `bool` | `true` | Create default category folders on initialization |
+| `init_default_folders` | `bool` | `false` | Create default category folders on initialization |

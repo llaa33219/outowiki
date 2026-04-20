@@ -38,7 +38,7 @@ class WikiDocument(BaseModel):
     created: datetime
     modified: datetime
     tags: List[str] = []
-    category: str
+    category: Optional[str] = None
     related: List[str] = []
 
 
@@ -51,7 +51,7 @@ class DocumentMetadata(BaseModel):
 
     title: str
     tags: List[str] = []
-    category: str
+    category: Optional[str] = None
     related: List[str] = []
     custom: Dict[str, Any] = {}
 
