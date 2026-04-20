@@ -142,8 +142,8 @@ class Recorder:
     def _classify_topic(self, content: str) -> Optional[str]:
         category_tree = self._explore_category_tree()
         
-        def format_tree(tree, indent=0):
-            lines = []
+        def format_tree(tree: Dict[str, Any], indent: int = 0) -> List[str]:
+            lines: List[str] = []
             if tree['category']:
                 lines.append("  " * indent + f"- {tree['category']}/ ({len(tree['files'])} files)")
             for sub in tree['subcategories']:
@@ -166,10 +166,10 @@ If no existing category fits well, suggest a NEW category path (e.g., "programmi
 Return the category path (e.g., "programming/python/web")."""
         
         try:
-            result = self.agent._call_with_schema(prompt, type('CategoryResult', (), {'category': ''}))
+            result: Any = self.agent._call_with_schema(prompt, type('CategoryResult', (), {'category': ''}))
             if hasattr(result, 'category') and result.category:
                 self._create_category_if_needed(result.category)
-                return result.category
+                return str(result.category)
         except Exception as e:
             self.logger.debug(f"Topic classification failed: {e}")
         
@@ -374,7 +374,10 @@ Return the category path (e.g., "programming/python/web")."""
             elif operation == 'prepend':
                 doc.content = f"{mod_body}\n\n{doc.content}"
             elif operation == 'append_section_after':
-                doc.content = self._append_section_after(doc.content, section, mod_body)
+                if section:
+                    doc.content = self._append_section_after(doc.content, section, mod_body)
+                else:
+                    doc.content += f"\n\n{mod_body}"
             elif operation == 'replace_section':
                 sections = extract_sections(doc.content)
                 target_level = None
@@ -569,7 +572,7 @@ Return the category path (e.g., "programming/python/web")."""
         stop_words = {'this', 'that', 'with', 'from', 'have', 'been', 'will', 'would', 'could', 'should'}
         meaningful_words = [w for w in words if w not in stop_words]
         
-        word_freq = {}
+        word_freq: Dict[str, int] = {}
         for word in meaningful_words:
             word_freq[word] = word_freq.get(word, 0) + 1
         
@@ -681,7 +684,7 @@ Return the category path (e.g., "programming/python/web")."""
         
         try:
             folder_content = self.wiki.list_folder(category)
-            result = {
+            result: Dict[str, Any] = {
                 'category': category,
                 'files': folder_content.get('files', []),
                 'subcategories': [],
