@@ -216,7 +216,29 @@ topic = recorder._classify_topic("User prefers dark mode")
 print(topic)  # "preferences/ui"
 ```
 
-### Step 2: Find Existing Document
+### Step 2: Title Requirement
+
+**title is REQUIRED for all document creation plans.** The system validates LLM responses and retries if title is missing:
+
+```python
+# LLM must provide title in metadata
+# If title is missing, system automatically retries with:
+# "IMPORTANT: You MUST provide a title in metadata.title for EVERY plan. Title is REQUIRED."
+
+# Example of valid plan:
+plan = CreatePlan(
+    target_path="preferences/ui/theme",
+    reason="User preference for dark mode",
+    content="User prefers dark theme for coding sessions.",
+    metadata=DocumentMetadata(
+        title="Dark Mode Preference",  # REQUIRED - human-readable
+        tags=["preferences", "ui", "theme"],
+        category="preferences"
+    )
+)
+```
+
+### Step 3: Find Existing Document
 
 ```python
 # Find document in category

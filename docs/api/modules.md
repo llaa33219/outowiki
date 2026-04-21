@@ -55,6 +55,27 @@ doc_path = recorder._find_document_in_category("programming/mobile/camera", cont
 print(doc_path)  # "programming/mobile/camera.md" or None
 ```
 
+### Title Requirement
+
+**title is REQUIRED for all document creation plans.** If LLM generates a plan without title, the system automatically retries with explicit instruction:
+
+```python
+# LLM must provide title in metadata
+plan = CreatePlan(
+    target_path="tools/camera",
+    reason="New camera tool documentation",
+    content="...",
+    metadata=DocumentMetadata(
+        title="React Native Camera Setup",  # REQUIRED
+        tags=["camera", "react-native"],
+        category="tools"
+    )
+)
+
+# If title is missing, system retries automatically:
+# "IMPORTANT: You MUST provide a title in metadata.title for EVERY plan. Title is REQUIRED."
+```
+
 ### Folder-Based Classification
 
 Categories are **folders**. No preset categories are forced:

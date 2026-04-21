@@ -20,6 +20,7 @@ OutoWiki follows Wikipedia/NamuWiki classification principles:
 - **Folder-Based Classification** - Categories are folders, no preset categories forced
 - **Dynamic Category Creation** - Create new categories as needed
 - **Category Tree Exploration** - Navigate and explore category hierarchy
+- **Required Title Validation** - title is REQUIRED for all documents, auto-retry if missing
 - **Full Document Delivery** - Entire document content delivered to LLM (no 500-character limit)
 - **Section-Based Editing** - Wikipedia-style section editing (append, prepend, replace)
 - **Multi-Topic Splitting** - Split content with multiple topics into separate documents
