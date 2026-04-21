@@ -202,17 +202,29 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
         self.logger.debug(f"Generated summary: {result.summary[:50]}...")
         return result.summary
 
-    def _call_with_schema(self, prompt: str, schema: Type[T]) -> T:
+    def _call_with_schema(self, prompt: str, schema: Type[T], max_retries: int = 2) -> T:
         """Call LLM with schema validation.
 
         Args:
             prompt: Prompt to send
             schema: Pydantic model for response validation
+            max_retries: Maximum number of retries on failure
 
         Returns:
             Validated instance of schema
         """
         self.logger.debug(f"Calling LLM with schema: {schema.__name__}")
-        result = self.provider.complete_with_schema(prompt, schema)
-        self.logger.debug(f"Schema validation successful: {schema.__name__}")
-        return result
+        
+        for attempt in range(max_retries + 1):
+            try:
+                result = self.provider.complete_with_schema(prompt, schema)
+                self.logger.debug(f"Schema validation successful: {schema.__name__}")
+                return result
+            except ProviderError as e:
+                if attempt < max_retries and "No tool call" in str(e):
+                    self.logger.warning(f"LLM did not return tool call (attempt {attempt + 1}/{max_retries + 1}). Retrying...")
+                    prompt += "\n\nIMPORTANT: You MUST use the provided tool to return structured data. Do not respond with plain text."
+                    continue
+                raise
+        
+        raise ProviderError(f"Failed to get structured response after {max_retries + 1} attempts")
