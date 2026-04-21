@@ -26,6 +26,7 @@ CRITICAL REQUIREMENTS:
 - metadata.title is REQUIRED for ALL actions - you MUST provide a descriptive title
 - Title should be human-readable (e.g., "React Native Camera Setup" not "react_native_camera")
 - Title is used as the document's display name
+- plans MUST be an array of plan objects, NOT a JSON string
 
 Create a plan with one or more of these actions:
 1. CREATE: New document at appropriate location (can be at root or in any folder)
@@ -41,7 +42,7 @@ Consider:
 - Keep documents under 4000 tokens when possible
 - Choose meaningful paths that help future discovery
 
-Respond with a list of Plan objects in JSON format."""
+You MUST use the provided tool to return the plan. Do NOT respond with plain text or JSON."""
 
 MERGE_PLANNING_PROMPT = """Plan how to merge these documents.
 

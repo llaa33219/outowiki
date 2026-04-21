@@ -5,10 +5,9 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 
 from ..providers.base import LLMProvider
-from ..core.exceptions import ProviderError
 from ..models.analysis import AnalysisResult
 from ..models.content import DocumentGeneration, SummaryGeneration
 from ..models.plans import Plan, PlanType
@@ -203,35 +202,8 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
         self.logger.debug(f"Generated summary: {result.summary[:50]}...")
         return result.summary
 
-    def _call_with_schema(self, prompt: str, schema: Type[T], max_retries: int = 2) -> T:
-        """Call LLM with schema validation.
-
-        Args:
-            prompt: Prompt to send
-            schema: Pydantic model for response validation
-            max_retries: Maximum number of retries on failure
-
-        Returns:
-            Validated instance of schema
-        """
+    def _call_with_schema(self, prompt: str, schema: Type[T]) -> T:
         self.logger.debug(f"Calling LLM with schema: {schema.__name__}")
-        
-        for attempt in range(max_retries + 1):
-            try:
-                result = self.provider.complete_with_schema(prompt, schema)
-                self.logger.debug(f"Schema validation successful: {schema.__name__}")
-                return result
-            except ProviderError as e:
-                if attempt < max_retries and "No tool call" in str(e):
-                    self.logger.warning(f"LLM did not return tool call (attempt {attempt + 1}/{max_retries + 1}). Retrying...")
-                    prompt += "\n\nIMPORTANT: You MUST use the provided tool to return structured data. Do not respond with plain text."
-                    continue
-                raise
-            except ValidationError as e:
-                if attempt < max_retries:
-                    self.logger.warning(f"Schema validation failed (attempt {attempt + 1}/{max_retries + 1}): {e}. Retrying...")
-                    prompt += f"\n\nIMPORTANT: Your previous response was invalid. Error: {str(e)[:200]}. Please provide all required fields."
-                    continue
-                raise
-        
-        raise ProviderError(f"Failed to get structured response after {max_retries + 1} attempts")
+        result = self.provider.complete_with_schema(prompt, schema)
+        self.logger.debug(f"Schema validation successful: {schema.__name__}")
+        return result
