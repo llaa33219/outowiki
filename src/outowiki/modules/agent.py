@@ -157,6 +157,15 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
         self.logger.debug("Calling LLM for plan generation...")
         from ..models.plans import PlanResponse
         plan_response = self._call_with_schema(prompt, PlanResponse)
+        
+        for plan in plan_response.plans:
+            if hasattr(plan, 'metadata') and plan.metadata:
+                if not plan.metadata.title:
+                    self.logger.warning("LLM generated plan without title. Retrying with explicit instruction.")
+                    prompt += "\n\nIMPORTANT: You MUST provide a title in metadata.title for EVERY plan. Title is REQUIRED."
+                    plan_response = self._call_with_schema(prompt, PlanResponse)
+                    break
+        
         self.logger.debug(f"Generated {len(plan_response.plans)} plans")
         return list(plan_response.plans)
 
