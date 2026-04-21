@@ -568,6 +568,7 @@ class TestCreatePlan:
             target_path="new/doc",
             reason="new info",
             content="# New Doc\n\nContent here.",
+            title="New Doc",
             metadata=DocumentMetadata(title="New Doc", category="notes"),
         )
         assert plan.plan_type == PlanType.CREATE
@@ -577,6 +578,7 @@ class TestCreatePlan:
             target_path="a/b",
             reason="test",
             content="body",
+            title="T",
             metadata=DocumentMetadata(title="T", category="c"),
         )
         assert plan.content == "body"
@@ -587,6 +589,7 @@ class TestCreatePlan:
             target_path="x",
             reason="r",
             content="c",
+            title="T",
             metadata=DocumentMetadata(title="T", category="c"),
         )
         assert plan.backlinks_to_add == []
@@ -596,6 +599,7 @@ class TestCreatePlan:
             target_path="x",
             reason="r",
             content="c",
+            title="T",
             metadata=DocumentMetadata(title="T", category="c"),
             backlinks_to_add=["ref/one", "ref/two"],
         )

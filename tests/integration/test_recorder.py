@@ -189,6 +189,7 @@ class TestPlan:
             target_path="topics/new_thing",
             reason="New topic",
             content="New thing content",
+            title="New Thing",
             metadata=DocumentMetadata(
                 title="New Thing",
                 category="topics",
@@ -277,6 +278,7 @@ class TestExecute:
             target_path="test/new_doc",
             reason="Test create",
             content="Raw info",
+            title="Test Doc",
             metadata=DocumentMetadata(
                 title="Test Doc",
                 category="test",
@@ -465,6 +467,7 @@ class TestRecordPipeline:
                     target_path="users/preferences",
                     reason="Store user preference",
                     content="User prefers Python",
+                    title="User Preferences",
                     metadata=DocumentMetadata(
                         title="User Preferences",
                         category="users",
@@ -563,6 +566,7 @@ class TestRecordPipeline:
                     target_path="config/settings",
                     reason="Store config",
                     content="Config data",
+                    title="Settings",
                     metadata=DocumentMetadata(
                         title="Settings",
                         category="config",
@@ -610,6 +614,7 @@ class TestHistoryIntegration:
                     target_path="notes/versioned",
                     reason="Version test",
                     content="Version content",
+                    title="Versioned Note",
                     metadata=DocumentMetadata(
                         title="Versioned Note",
                         category="notes",
@@ -716,6 +721,7 @@ This is the actual body content.
             target_path="test/frontmatter_doc",
             reason="Test frontmatter stripping",
             content="Raw info",
+            title="Correct Title",
             metadata=DocumentMetadata(
                 title="Correct Title",
                 category="test",

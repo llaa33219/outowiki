@@ -68,6 +68,7 @@ def test_record_creates_document(wiki, mock_provider):
             target_path="test/document",
             reason="Test creation",
             content="Test content",
+            title="Test Document",
             metadata=DocumentMetadata(
                 title="Test Document",
                 category="test",
