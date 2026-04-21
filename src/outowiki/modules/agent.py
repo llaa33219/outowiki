@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 from pydantic import BaseModel
 
 from ..providers.base import LLMProvider
+from ..core.exceptions import ProviderError
 from ..models.analysis import AnalysisResult
 from ..models.content import DocumentGeneration, SummaryGeneration
 from ..models.plans import Plan, PlanType
