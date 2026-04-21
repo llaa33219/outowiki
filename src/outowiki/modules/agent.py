@@ -5,7 +5,7 @@ import json
 import logging
 from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ..providers.base import LLMProvider
 from ..core.exceptions import ProviderError
@@ -225,6 +225,12 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
                 if attempt < max_retries and "No tool call" in str(e):
                     self.logger.warning(f"LLM did not return tool call (attempt {attempt + 1}/{max_retries + 1}). Retrying...")
                     prompt += "\n\nIMPORTANT: You MUST use the provided tool to return structured data. Do not respond with plain text."
+                    continue
+                raise
+            except ValidationError as e:
+                if attempt < max_retries:
+                    self.logger.warning(f"Schema validation failed (attempt {attempt + 1}/{max_retries + 1}): {e}. Retrying...")
+                    prompt += f"\n\nIMPORTANT: Your previous response was invalid. Error: {str(e)[:200]}. Please provide all required fields."
                     continue
                 raise
         
