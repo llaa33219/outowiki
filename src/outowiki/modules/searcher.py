@@ -226,22 +226,6 @@ Respond with JSON matching IntentAnalysis schema."""
             score += 0.1
             self.logger.debug("Category match: +0.1")
 
-        if intent.information_type:
-            type_keywords = {
-                'user': ['user', 'preference', 'profile', 'person'],
-                'tool': ['tool', 'function', 'method', 'api', 'usage'],
-                'knowledge': ['learn', 'fact', 'concept', 'knowledge'],
-                'history': ['history', 'session', 'conversation', 'log'],
-                'agent': ['agent', 'self', 'identity', 'learning']
-            }
-
-            keywords = type_keywords.get(intent.information_type, [])
-            for keyword in keywords:
-                if keyword in content_lower or keyword in doc.title.lower():
-                    score += 0.1
-                    self.logger.debug(f"Type keyword match ({keyword}): +0.1")
-                    break
-
         self.logger.debug(f"Total relevance score: {score:.2f}")
         return min(score, 1.0)
 

@@ -545,42 +545,40 @@ Return the category path (e.g., "programming/python/web")."""
         return None
 
     def _extract_keywords(self, content: str) -> List[str]:
-        content_lower = content.lower()
+        prompt = f"""Extract key topics and keywords from this text.
+
+Text:
+{content[:1000]}
+
+Return a JSON object with a "keywords" array containing the main topics and keywords.
+Example: {{"keywords": ["camera", "mobile app", "iOS", "Android"]}}"""
         
-        known_terms = [
-            'camera', 'react native', 'expo', 'ios', 'android',
-            'python', 'javascript', 'typescript', 'flask', 'django',
-            'api', 'rest', 'graphql', 'database', 'sql', 'mongodb',
-            'auth', 'jwt', 'oauth', 'security', 'performance',
-            'error', 'bug', 'crash', 'debug', 'test',
-        ]
+        try:
+            result: Any = self.agent._call_with_schema(prompt, type('KeywordResult', (), {'keywords': []}))
+            if hasattr(result, 'keywords') and result.keywords:
+                keywords = [k.strip().lower() for k in result.keywords if k.strip()]
+                return keywords
+        except Exception as e:
+            self.logger.debug(f"Keyword extraction failed: {e}")
         
-        found_keywords = []
-        for term in known_terms:
-            if term in content_lower:
-                found_keywords.append(term)
-        
-        words = re.findall(r'\b[a-z]{4,}\b', content_lower)
-        stop_words = {'this', 'that', 'with', 'from', 'have', 'been', 'will', 'would', 'could', 'should'}
-        meaningful_words = [w for w in words if w not in stop_words]
-        
-        word_freq: Dict[str, int] = {}
-        for word in meaningful_words:
-            word_freq[word] = word_freq.get(word, 0) + 1
-        
-        top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:5]
-        found_keywords.extend([w for w, _ in top_words])
-        
-        return list(set(found_keywords))
+        return []
 
     def _category_matches(self, category: str, keywords: List[str]) -> bool:
-        category_lower = category.lower()
-        category_parts = category_lower.split('/')
+        prompt = f"""Determine if this category matches the given keywords.
+
+Category: {category}
+Keywords: {', '.join(keywords)}
+
+Return a JSON object with a "matches" boolean indicating if the category is relevant to the keywords.
+Example: {{"matches": true}}"""
         
-        for keyword in keywords:
-            for part in category_parts:
-                if keyword in part or part in keyword:
-                    return True
+        try:
+            result: Any = self.agent._call_with_schema(prompt, type('MatchResult', (), {'matches': False}))
+            if hasattr(result, 'matches'):
+                return bool(result.matches)
+        except Exception as e:
+            self.logger.debug(f"Category matching failed: {e}")
+        
         return False
 
     def _append_section_after(self, content: str, target_section: str, new_content: str) -> str:

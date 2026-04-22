@@ -47,11 +47,9 @@ def mock_provider():
                 exploration_start="root",
                 confidence_requirement="medium",
             )
-        # Handle SummaryGeneration schema
         if schema.__name__ == "SummaryGeneration":
             from outowiki.models.content import SummaryGeneration
             return SummaryGeneration(summary="Mock response")
-        # Handle DocumentGeneration schema
         if schema.__name__ == "DocumentGeneration":
             from outowiki.models.content import DocumentGeneration
             return DocumentGeneration(content="Mock response")
