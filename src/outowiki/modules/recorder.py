@@ -636,7 +636,7 @@ Return a JSON object with a "topics" array containing the separated content bloc
 Example: {{"topics": ["Topic 1 content...", "Topic 2 content...", "Topic 3 content..."]}}"""
         
         try:
-            result = self.agent._call_with_schema(prompt, type('TopicSplitResult', (), {'topics': []}))
+            result: Any = self.agent._call_with_schema(prompt, type('TopicSplitResult', (), {'topics': []}))
             if hasattr(result, 'topics') and result.topics:
                 topics = [t.strip() for t in result.topics if t.strip() and len(t.strip()) > 20]
                 if len(topics) > 1:
