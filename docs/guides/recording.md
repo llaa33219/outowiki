@@ -173,25 +173,31 @@ plan = ModifyPlan(
 
 ## Multi-Topic Splitting
 
-When input contains multiple topics, each is processed independently:
+When input contains multiple topics, each is processed independently using LLM:
 
 ```python
-# Input with multiple topics
+# Input with mixed topics (extreme example)
 content = """
-## 카메라 앱 개발
-Expo Camera 라이브러리를 사용한다.
-
-## 성능 최적화
-이미지 캐싱을 추가했다.
-
-## 배포 준비
-App Store 심사를 준비 중이다.
+Linux Mint는 클레멘트 르페브르가 개발한 우분투 기반 운영체제이다.
+알루미늄은 원자번호 13번인 금속 원소로 공기 중의 산소와 반응하여 산화 알루미늄 피막을 형성한다.
+OpenBSD는 테오 드 라트가 넷BSD에서 포크한 운영체제로 "기본적으로 안전"이라는 철학을 가지고 있다.
 """
 
-# Each topic processed separately:
-# 1. "카메라 앱 개발" → programming/mobile/camera
-# 2. "성능 최적화" → programming/performance
-# 3. "배포 준비" → deployment/app_store
+# LLM identifies 3 distinct topics:
+# 1. "Linux Mint" → programming/operating_systems/linux_mint
+# 2. "알루미늄(Aluminum)" → science/chemistry/aluminum
+# 3. "OpenBSD" → programming/operating_systems/openbsd
+```
+
+### LLM-Based Topic Splitting
+
+OutoWiki uses LLM to identify distinct topics in mixed content:
+
+```python
+def _split_topics(self, content: str) -> List[str]:
+    # 1. Ask LLM to identify distinct topics
+    # 2. LLM returns separated content blocks
+    # 3. Each block processed independently
 ```
 
 ### Splitting Algorithm
@@ -238,7 +244,29 @@ plan = CreatePlan(
 )
 ```
 
-### Step 3: Find Existing Document
+### Step 3: Keyword Extraction (LLM-Based)
+
+Keywords are extracted using LLM, not hardcoded lists:
+
+```python
+def _extract_keywords(self, content: str) -> List[str]:
+    # Ask LLM to extract key topics and keywords
+    # Returns list of relevant keywords
+    # No hardcoded term lists or stop words
+```
+
+### Step 4: Category Matching (LLM-Based)
+
+Category matching uses LLM to determine relevance:
+
+```python
+def _category_matches(self, category: str, keywords: List[str]) -> bool:
+    # Ask LLM if category matches keywords
+    # Returns boolean indicating relevance
+    # No string matching or hardcoded logic
+```
+
+### Step 5: Find Existing Document
 
 ```python
 # Find document in category

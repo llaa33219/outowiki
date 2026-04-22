@@ -22,7 +22,9 @@ result = recorder.record(raw_content)
 | `_explore_category_tree(category, depth, max_depth)` | Explore category tree structure |
 | `_create_category_if_needed(category)` | Create category folder if it doesn't exist |
 | `_parse_wikilinks(content)` | Extract `[[Document Name]]` patterns |
-| `_split_topics(content)` | Split multi-topic content into blocks |
+| `_split_topics(content)` | Split multi-topic content using LLM |
+| `_extract_keywords(content)` | Extract keywords using LLM |
+| `_category_matches(category, keywords)` | Match category to keywords using LLM |
 | `_append_section_after(content, section, new_content)` | Add section after specific section |
 
 ### Wiki-Style Topic Classification
