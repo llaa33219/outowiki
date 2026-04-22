@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
@@ -626,16 +627,6 @@ Return the category path (e.g., "programming/python/web")."""
         return '\n'.join(new_lines)
 
     def _split_topics(self, content: str) -> List[str]:
-        """
-        다중 주제 분리 (규칙 기반)
-        
-        주제 경계 패턴:
-        - [제목] 형태
-        - ## 헤딩
-        - 주제 전환 키워드: "또는", "한편", "다른 주제로", "추가로"
-        """
-        import re
-        
         boundaries = re.split(r'\n(?=\[|\#\#)', content)
         
         if len(boundaries) <= 1:
@@ -653,10 +644,36 @@ Return the category path (e.g., "programming/python/web")."""
         topics = [b.strip() for b in boundaries if b.strip() and len(b.strip()) > 20]
         
         if len(topics) <= 1:
+            llm_topics = self._split_topics_with_llm(content)
+            if llm_topics and len(llm_topics) > 1:
+                return llm_topics
             return [content]
         
         self.logger.debug(f"Split into {len(topics)} topics")
         return topics
+
+    def _split_topics_with_llm(self, content: str) -> Optional[List[str]]:
+        prompt = f"""Analyze this text and identify distinct topics mixed together.
+
+Text:
+{content[:2000]}
+
+Identify ALL distinct topics/subjects in this text. Each topic should be a separate block of content.
+
+Return a JSON object with a "topics" array containing the separated content blocks.
+Example: {{"topics": ["Topic 1 content...", "Topic 2 content...", "Topic 3 content..."]}}"""
+        
+        try:
+            result = self.agent._call_with_schema(prompt, type('TopicSplitResult', (), {'topics': []}))
+            if hasattr(result, 'topics') and result.topics:
+                topics = [t.strip() for t in result.topics if t.strip() and len(t.strip()) > 20]
+                if len(topics) > 1:
+                    self.logger.debug(f"LLM split into {len(topics)} topics")
+                    return topics
+        except Exception as e:
+            self.logger.debug(f"LLM topic splitting failed: {e}")
+        
+        return None
 
     def _process_single_topic(self, content: str, content_type: str, context: Dict[str, Any]) -> RecordResult:
         existing_doc_path = self._find_existing_document(content)
