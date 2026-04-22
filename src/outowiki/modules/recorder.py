@@ -198,7 +198,6 @@ Return the category path (e.g., "programming/python/web")."""
         return None
 
     def _parse_wikilinks(self, content: str) -> List[str]:
-        import re
         pattern = r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]'
         links = re.findall(pattern, content)
         self.logger.debug(f"Parsed wikilinks: {links}")
@@ -546,13 +545,6 @@ Return the category path (e.g., "programming/python/web")."""
         return None
 
     def _extract_keywords(self, content: str) -> List[str]:
-        """
-        텍스트에서 키워드 추출 (간단한 구현)
-        
-        명사구, 고유명사 패턴 추출
-        """
-        import re
-        
         content_lower = content.lower()
         
         known_terms = [
@@ -627,30 +619,10 @@ Return the category path (e.g., "programming/python/web")."""
         return '\n'.join(new_lines)
 
     def _split_topics(self, content: str) -> List[str]:
-        boundaries = re.split(r'\n(?=\[|\#\#)', content)
-        
-        if len(boundaries) <= 1:
-            transition_patterns = [
-                r'\n(?:또는|한편|다른 주제로|추가로|또한|그리고|마지막으로)\s',
-                r'\n\d+\.\s',
-                r'\n-\s(?=[A-Z])',
-            ]
-            
-            for pattern in transition_patterns:
-                boundaries = re.split(pattern, content)
-                if len(boundaries) > 1:
-                    break
-        
-        topics = [b.strip() for b in boundaries if b.strip() and len(b.strip()) > 20]
-        
-        if len(topics) <= 1:
-            llm_topics = self._split_topics_with_llm(content)
-            if llm_topics and len(llm_topics) > 1:
-                return llm_topics
-            return [content]
-        
-        self.logger.debug(f"Split into {len(topics)} topics")
-        return topics
+        llm_topics = self._split_topics_with_llm(content)
+        if llm_topics and len(llm_topics) > 1:
+            return llm_topics
+        return [content]
 
     def _split_topics_with_llm(self, content: str) -> Optional[List[str]]:
         prompt = f"""Analyze this text and identify distinct topics mixed together.
