@@ -626,10 +626,19 @@ Example: {{"matches": true}}"""
         prompt = f"""Analyze this text and identify ALL distinct topics/subjects that are mixed together.
 
 Text:
-{content[:3000]}
+{content}
 
 IMPORTANT: Even if the text flows as one narrative, it may contain MULTIPLE unrelated subjects.
-For example, a text might discuss "Linux Mint", "aluminum chemistry", and "OpenBSD history" all in one paragraph.
+
+Examples of mixed content:
+1. "Linux Mint는 클레멘트 르페브르가 개발했다. 알루미늄은 원자번호 13번이다. OpenBSD는 테오 드 라트가 만들었다."
+   → Topics: ["Linux Mint는 클레멘트 르페브르가 개발했다.", "알루미늄은 원자번호 13번이다.", "OpenBSD는 테오 드 라트가 만들었다."]
+
+2. "React는 Facebook이 개발한 라이브러리이다. 빛의 속도는 초속 30만km이다. 파이썬은 귀도 반 로썸이 만들었다."
+   → Topics: ["React는 Facebook이 개발한 라이브러리이다.", "빛의 속도는 초속 30만km이다.", "파이썬은 귀도 반 로썸이 만들었다."]
+
+3. "카메라 앱을 개발 중이다. PostgreSQL은 ACID를 준수한다. 서울의 인구는 약 1000만명이다."
+   → Topics: ["카메라 앱을 개발 중이다.", "PostgreSQL은 ACID를 준수한다.", "서울의 인구는 약 1000만명이다."]
 
 Your task:
 1. Identify EVERY distinct subject/topic mentioned
