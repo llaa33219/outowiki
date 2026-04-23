@@ -202,8 +202,18 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
         self.logger.debug(f"Generated summary: {result.summary[:50]}...")
         return result.summary
 
-    def _call_with_schema(self, prompt: str, schema: Type[T]) -> T:
+    def _call_with_schema(self, prompt: str, schema: Type[T], max_retries: int = 3) -> T:
         self.logger.debug(f"Calling LLM with schema: {schema.__name__}")
-        result = self.provider.complete_with_schema(prompt, schema)
-        self.logger.debug(f"Schema validation successful: {schema.__name__}")
-        return result
+        
+        import time
+        for attempt in range(max_retries):
+            try:
+                result = self.provider.complete_with_schema(prompt, schema)
+                self.logger.debug(f"Schema validation successful: {schema.__name__}")
+                return result
+            except Exception as e:
+                self.logger.warning(f"LLM call failed (attempt {attempt + 1}/{max_retries}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(2 ** attempt)
+        
+        raise Exception(f"Failed after {max_retries} attempts")
