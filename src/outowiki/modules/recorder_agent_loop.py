@@ -4,20 +4,11 @@ from __future__ import annotations
 
 import json
 import logging
-import re
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
-
-from ..models.content import WikiDocument
-from ..models.analysis import AnalysisResult
-from ..models.plans import Plan, PlanType, CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan
 from ..core.store import WikiStore
 from ..core.exceptions import WikiStoreError
-from ..utils.markdown import extract_sections, parse_frontmatter
 from .agent_loop import AgentLoop
-from .tools import ToolDefinition
 from .wiki_tools import create_wiki_tools
 from .reasoning_tools import create_reasoning_tools
 
@@ -160,7 +151,6 @@ Analyze the content, create a plan, and execute it."""
         actions = []
         for msg in history:
             if msg.get("role") == "tool":
-                tool_call_id = msg.get("tool_call_id", "")
                 content = msg.get("content", "")
                 try:
                     data = json.loads(content)

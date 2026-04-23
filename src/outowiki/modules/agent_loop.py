@@ -7,7 +7,7 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..providers.base import LLMProvider, ProviderResponse, ToolCall
+from ..providers.base import LLMProvider
 from .tools import ToolDefinition, ToolRegistry
 
 

@@ -6,12 +6,10 @@ import logging
 from typing import Dict, List, Optional
 
 from ..models.search import SearchQuery, SearchResult
-from ..models.analysis import IntentAnalysis
 from ..models.content import WikiDocument
 from ..core.store import WikiStore
 from ..core.exceptions import WikiStoreError
 from .agent_loop import AgentLoop
-from .tools import ToolDefinition
 from .wiki_tools import create_wiki_tools
 from .reasoning_tools import create_reasoning_tools
 
