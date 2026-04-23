@@ -37,7 +37,7 @@ Analyze this input and provide:
 5. temporal_range: Is this time-sensitive? (recent, historical, timeless)
 6. confidence_score: How confident are you in the analysis? (0.0-1.0)
 7. importance_score: How important is this information? (0.0-1.0)
-8. suggested_action: What should we do? (CREATE, MODIFY, MERGE, SPLIT, DELETE)
+8. suggested_action: What should we do? MUST be one of these EXACT values: "create", "modify", "merge", "split", "delete" (lowercase)
 9. target_documents: Which documents should be affected? Include FULL path if categorized (e.g., "programming/python/web/flask" or just "flask_concepts" for uncategorized)
 
 Respond with valid JSON matching the AnalysisResult schema."""
