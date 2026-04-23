@@ -38,8 +38,8 @@ OutoWiki follows Wikipedia/NamuWiki classification principles:
          ┌────────────┼────────────┐
          │            │            │
     ┌────▼────┐  ┌────▼────┐  ┌────▼────┐
-    │Recorder │  │Searcher │  │Internal │
-    │ Module  │  │ Module  │  │ Agent   │
+    │Recorder │  │Searcher │  │AgentLoop│
+    │ Module  │  │ Module  │  │         │
     └────┬────┘  └────┬────┘  └────┬────┘
          │            │            │
     ┌────▼────────────▼────────────▼────┐
@@ -52,7 +52,40 @@ The system has three main components:
 
 - **Recorder**: Processes new content using Wiki-style topic classification (is-a relationship), determines document placement, manages backlinks
 - **Searcher**: Finds relevant documents using semantic search and intent analysis
-- **Internal Agent**: Handles complex operations like merge, split, and modify plans
+- **AgentLoop**: Unified LLM agent with tool-calling and conversation history, manages multi-turn tool chaining
+
+### AgentLoop Architecture
+
+OutoWiki uses a unified agent loop for LLM operations:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                      AgentLoop                           │
+│  (Manages conversation history and tool execution)       │
+└─────────────────────┬───────────────────────────────────┘
+                      │
+         ┌────────────┼────────────┐
+         │            │            │
+    ┌────▼────┐  ┌────▼────┐  ┌────▼────┐
+    │Wiki I/O │  │Reasoning│  │ Tool    │
+    │ Tools   │  │ Tools   │  │Registry │
+    └─────────┘  └─────────┘  └─────────┘
+```
+
+**Key Benefits:**
+- **Conversation History**: LLM sees previous results when planning
+- **Tool Chaining**: LLM automatically chains tool calls
+- **Context Continuity**: No redundant context injection
+- **Automatic Progression**: No user intervention needed
+
+**Example Flow:**
+```python
+result = agent_loop.run(
+    user_message="Record this content to the wiki...",
+    terminal_tools={"write_document"}
+)
+# LLM automatically: analyze → plan → generate_document → write_document
+```
 
 ### Wiki Structure
 

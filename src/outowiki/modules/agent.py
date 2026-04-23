@@ -158,14 +158,6 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
         from ..models.plans import PlanResponse
         plan_response = self._call_with_schema(prompt, PlanResponse)
         
-        for plan in plan_response.plans:
-            if hasattr(plan, 'metadata') and plan.metadata:
-                if not plan.metadata.title:
-                    self.logger.warning("LLM generated plan without title. Retrying with explicit instruction.")
-                    prompt += "\n\nIMPORTANT: You MUST provide a title in metadata.title for EVERY plan. Title is REQUIRED."
-                    plan_response = self._call_with_schema(prompt, PlanResponse)
-                    break
-        
         self.logger.debug(f"Generated {len(plan_response.plans)} plans")
         return list(plan_response.plans)
 
@@ -202,18 +194,8 @@ IMPORTANT: A related document already exists. Consider MODIFY instead of CREATE 
         self.logger.debug(f"Generated summary: {result.summary[:50]}...")
         return result.summary
 
-    def _call_with_schema(self, prompt: str, schema: Type[T], max_retries: int = 3) -> T:
+    def _call_with_schema(self, prompt: str, schema: Type[T]) -> T:
         self.logger.debug(f"Calling LLM with schema: {schema.__name__}")
-        
-        import time
-        for attempt in range(max_retries):
-            try:
-                result = self.provider.complete_with_schema(prompt, schema)
-                self.logger.debug(f"Schema validation successful: {schema.__name__}")
-                return result
-            except Exception as e:
-                self.logger.warning(f"LLM call failed (attempt {attempt + 1}/{max_retries}): {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(2 ** attempt)
-        
-        raise Exception(f"Failed after {max_retries} attempts")
+        result = self.provider.complete_with_schema(prompt, schema)
+        self.logger.debug(f"Schema validation successful: {schema.__name__}")
+        return result

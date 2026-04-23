@@ -1,11 +1,29 @@
 """Abstract base class for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import TypeVar
+from dataclasses import dataclass
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
+
+
+@dataclass
+class ToolCall:
+    """Represents a tool call from the LLM."""
+    id: str
+    name: str
+    arguments: str
+    parsed_arguments: dict[str, Any] | None = None
+
+
+@dataclass
+class ProviderResponse:
+    """Unified response from LLM provider."""
+    content: str | None
+    tool_calls: list[ToolCall] | None
+    finish_reason: str
 
 
 class LLMProvider(ABC):
@@ -47,6 +65,28 @@ class LLMProvider(ABC):
         Raises:
             ProviderError: If the request fails
             ValidationError: If response doesn't match schema
+        """
+        pass
+
+    @abstractmethod
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        **kwargs: object,
+    ) -> ProviderResponse:
+        """Multi-turn tool-calling completion.
+
+        Args:
+            messages: Conversation history
+            tools: Tool definitions for the LLM
+            **kwargs: Additional parameters
+
+        Returns:
+            ProviderResponse with content and/or tool calls
+
+        Raises:
+            ProviderError: If the request fails
         """
         pass
 

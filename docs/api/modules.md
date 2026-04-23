@@ -174,6 +174,113 @@ plan = agent.analyze_intent(user_request)
 | `generate_document(content, title, category, tags, related)` | Generate document via tool calls |
 | `generate_summary(content)` | Generate summary via tool calls |
 
+## AgentLoop
+
+The AgentLoop provides a unified LLM agent with tool-calling and conversation history.
+
+```python
+from outowiki.modules.agent_loop import AgentLoop
+from outowiki.modules.tools import ToolDefinition
+from outowiki.modules.wiki_tools import create_wiki_tools
+from outowiki.modules.reasoning_tools import create_reasoning_tools
+
+# Create tools
+wiki_tools = create_wiki_tools(wiki_store)
+reasoning_tools = create_reasoning_tools()
+all_tools = wiki_tools + reasoning_tools
+
+# Create agent loop
+agent_loop = AgentLoop(
+    provider=provider,
+    tools=all_tools,
+    system_prompt="You are a wiki assistant...",
+    max_iterations=20
+)
+
+# Run the loop
+result = agent_loop.run(
+    user_message="Record this content...",
+    terminal_tools={"write_document"}
+)
+```
+
+**Classes:**
+
+| Class | Description |
+|-------|-------------|
+| `AgentLoop` | Unified agent loop with tool-calling |
+| `ToolDefinition` | Defines a tool available to the agent |
+| `ToolRegistry` | Registry of available tools |
+| `AgentResult` | Result from agent loop execution |
+
+**AgentLoop Methods:**
+
+| Method | Description |
+|--------|-------------|
+| `run(user_message, context, terminal_tools)` | Execute the agent loop |
+| `reset()` | Reset conversation history |
+
+**Properties:**
+
+| Property | Description |
+|----------|-------------|
+| `history` | Current conversation history |
+| `registry` | Tool registry |
+
+### Tool Types
+
+**Wiki I/O Tools** (`wiki_tools`):
+
+| Tool | Description |
+|------|-------------|
+| `read_document` | Read a wiki document by path |
+| `write_document` | Create or update a wiki document |
+| `delete_document` | Delete a wiki document |
+| `list_folder` | List files and folders in a directory |
+| `list_categories` | List all categories in the wiki |
+
+**Reasoning Tools** (`reasoning_tools`):
+
+| Tool | Description |
+|------|-------------|
+| `analyze_content` | Analyze raw content and extract structured information |
+| `create_plan` | Create modification plans based on analysis |
+| `generate_document` | Generate document content from raw content |
+| `generate_summary` | Generate a summary of content |
+| `analyze_search_intent` | Analyze search query intent |
+
+### AgentLoop Flow
+
+```
+User: "Record this content to the wiki..."
+    ↓
+AgentLoop: analyze_content → create_plan → generate_document → write_document
+    ↓
+Result: RecordResult(success=True, actions=['Created: path/to/doc.md'])
+```
+
+### RecorderWithAgentLoop
+
+The RecorderWithAgentLoop uses AgentLoop for the recording pipeline.
+
+```python
+from outowiki.modules.recorder_agent_loop import RecorderWithAgentLoop
+
+recorder = RecorderWithAgentLoop(wiki_store, agent_loop)
+result = recorder.record("Content to record")
+```
+
+### SearcherWithAgentLoop
+
+The SearcherWithAgentLoop uses AgentLoop for the search pipeline.
+
+```python
+from outowiki.modules.searcher_agent_loop import SearcherWithAgentLoop
+
+searcher = SearcherWithAgentLoop(wiki_store, agent_loop)
+results = searcher.search("query")
+```
+
 ## Key Design Principles
 
 ### 1. is-a Relationship (Wiki-Style)

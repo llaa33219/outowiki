@@ -6,7 +6,7 @@ from anthropic import APIConnectionError, APIStatusError, Anthropic, RateLimitEr
 from pydantic import BaseModel
 
 from ..core.exceptions import ProviderError
-from .base import LLMProvider
+from .base import LLMProvider, ProviderResponse, ToolCall
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -57,28 +57,90 @@ class AnthropicProvider(LLMProvider):
             "input_schema": schema.model_json_schema()
         }]
         
-        response = self.client.messages.create(
-            model=self._model,
-            max_tokens=kwargs.get("max_tokens", self._max_tokens),
-            messages=[{"role": "user", "content": prompt}],
-            tools=tools,  # type: ignore[arg-type]
-        )
+        messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
+        max_attempts = kwargs.get("max_attempts", 5)
         
-        tool_use = None
-        for block in response.content:
-            if block.type == "tool_use":
-                tool_use = block
-                break
-        
-        if not tool_use:
-            raise ProviderError(
-                "No tool call in response. The model did not return structured data."
+        for attempt in range(max_attempts):
+            response = self.client.messages.create(
+                model=self._model,
+                max_tokens=kwargs.get("max_tokens", self._max_tokens),
+                messages=messages,
+                tools=tools,  # type: ignore[arg-type]
             )
+            
+            tool_use = None
+            text_content = []
+            
+            for block in response.content:
+                if block.type == "tool_use":
+                    tool_use = block
+                    break
+                elif block.type == "text":
+                    text_content.append(block.text)
+            
+            if tool_use:
+                try:
+                    return schema.model_validate(tool_use.input)
+                except Exception as e:
+                    raise ProviderError(f"Schema validation failed: {e}") from e
+            
+            if text_content:
+                messages.append({"role": "assistant", "content": "\n".join(text_content)})
+            messages.append({
+                "role": "user",
+                "content": "You MUST use the provided tool. Do not describe what you will do - just call the tool immediately."
+            })
         
+        raise ProviderError(
+            f"No tool call after {max_attempts} attempts."
+        )
+
+    def chat_with_tools(
+        self,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]],
+        **kwargs: Any,
+    ) -> ProviderResponse:
         try:
-            return schema.model_validate(tool_use.input)
-        except Exception as e:
-            raise ProviderError(f"Schema validation failed: {e}") from e
+            response = self.client.messages.create(
+                model=self._model,
+                max_tokens=kwargs.get("max_tokens", self._max_tokens),
+                messages=messages,
+                tools=tools,  # type: ignore[arg-type]
+            )
+            
+            content = None
+            tool_calls = None
+            
+            for block in response.content:
+                if block.type == "text":
+                    content = (content or "") + block.text
+                elif block.type == "tool_use":
+                    if tool_calls is None:
+                        tool_calls = []
+                    
+                    parsed = None
+                    if isinstance(block.input, dict):
+                        parsed = block.input
+                    
+                    tool_calls.append(ToolCall(
+                        id=block.id,
+                        name=block.name,
+                        arguments=str(block.input) if not isinstance(block.input, str) else block.input,
+                        parsed_arguments=parsed,
+                    ))
+            
+            return ProviderResponse(
+                content=content,
+                tool_calls=tool_calls,
+                finish_reason=response.stop_reason or "end_turn",
+            )
+        except APIConnectionError as e:
+            raise ProviderError(f"Connection error: {e}") from e
+        except RateLimitError as e:
+            raise ProviderError(f"Rate limit exceeded: {e}") from e
+        except APIStatusError as e:
+            raise ProviderError(f"API error {e.status_code}") from e
 
     @property
     def model_name(self) -> str:

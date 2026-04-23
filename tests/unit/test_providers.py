@@ -45,6 +45,10 @@ class TestLLMProviderBase:
             def complete_with_schema(self, prompt: str, schema: type, **kwargs: object):
                 return schema()
 
+            def chat_with_tools(self, messages: list, tools: list, **kwargs: object):
+                from outowiki.providers.base import ProviderResponse
+                return ProviderResponse(content=None, tool_calls=None, finish_reason="stop")
+
             @property
             def model_name(self) -> str:
                 return "test"
@@ -214,9 +218,10 @@ class TestOpenAIProviderCompleteWithSchema:
 
     @patch("outowiki.providers.openai.OpenAI")
     def test_complete_with_schema_raises_on_no_tool_call(self, mock_openai_cls):
-        """complete_with_schema raises ProviderError when no tool call in response."""
+        """complete_with_schema raises ProviderError when no tool call after retries."""
         mock_message = MagicMock()
         mock_message.tool_calls = []
+        mock_message.content = "some text"
 
         mock_response = MagicMock()
         mock_response.choices = [MagicMock()]
@@ -225,7 +230,7 @@ class TestOpenAIProviderCompleteWithSchema:
         provider = OpenAIProvider(api_key="k")
         provider.client.chat.completions.parse.return_value = mock_response
 
-        with pytest.raises(ProviderError, match="No tool call in response"):
+        with pytest.raises(ProviderError, match="No tool call after 5 attempts"):
             provider.complete_with_schema("describe", SampleSchema)
 
     @patch("outowiki.providers.openai.OpenAI")
@@ -400,7 +405,7 @@ class TestAnthropicProviderCompleteWithSchema:
 
     @patch("outowiki.providers.anthropic.Anthropic")
     def test_complete_with_schema_raises_on_no_tool_call(self, mock_anthropic_cls):
-        """complete_with_schema raises ProviderError when no tool_use in response."""
+        """complete_with_schema raises ProviderError when no tool_use after retries."""
         mock_text_block = MagicMock()
         mock_text_block.type = "text"
         mock_text_block.text = "some text"
@@ -411,7 +416,7 @@ class TestAnthropicProviderCompleteWithSchema:
         provider = AnthropicProvider(api_key="k")
         provider.client.messages.create.return_value = mock_response
 
-        with pytest.raises(ProviderError, match="No tool call in response"):
+        with pytest.raises(ProviderError, match="No tool call after 5 attempts"):
             provider.complete_with_schema("describe", SampleSchema)
 
     @patch("outowiki.providers.anthropic.Anthropic")
@@ -446,5 +451,5 @@ class TestAnthropicProviderCompleteWithSchema:
         provider = AnthropicProvider(api_key="k")
         provider.client.messages.create.return_value = mock_response
 
-        with pytest.raises(ProviderError, match="No tool call in response"):
+        with pytest.raises(ProviderError, match="No tool call after 5 attempts"):
             provider.complete_with_schema("describe", SampleSchema)
