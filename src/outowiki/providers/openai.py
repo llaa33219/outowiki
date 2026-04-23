@@ -68,7 +68,7 @@ class OpenAIProvider(LLMProvider):
         for attempt in range(max_attempts):
             response = self.client.chat.completions.parse(
                 model=self._model,
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
                 tools=tools,
                 max_completion_tokens=kwargs.get("max_tokens", self._max_tokens),
                 temperature=kwargs.get("temperature", 0.7),
@@ -112,8 +112,8 @@ class OpenAIProvider(LLMProvider):
         try:
             response = self.client.chat.completions.create(
                 model=self._model,
-                messages=messages,
-                tools=tools,
+                messages=messages,  # type: ignore[arg-type]
+                tools=tools,  # type: ignore[arg-type]
                 max_completion_tokens=kwargs.get("max_tokens", self._max_tokens),
                 temperature=kwargs.get("temperature", 0.7),
             )
@@ -125,6 +125,9 @@ class OpenAIProvider(LLMProvider):
             if message.tool_calls:
                 tool_calls = []
                 for tc in message.tool_calls:
+                    if not hasattr(tc, 'function'):
+                        continue
+                    
                     parsed = None
                     try:
                         parsed = json.loads(tc.function.arguments)

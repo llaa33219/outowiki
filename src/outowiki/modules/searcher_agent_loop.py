@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from ..models.search import SearchQuery, SearchResult
 from ..models.content import WikiDocument
@@ -129,12 +129,16 @@ Find documents that match this query and return their paths."""
         self.logger.debug(f"Results ready: {len(search_result.paths)} paths")
         return search_result
 
-    def _extract_paths_from_result(self, output: any) -> List[str]:
+    def _extract_paths_from_result(self, output: Any) -> List[str]:
         if isinstance(output, dict):
             if "paths" in output:
-                return output["paths"]
+                paths = output["paths"]
+                if isinstance(paths, list):
+                    return [p for p in paths if isinstance(p, str)]
             if "path" in output:
-                return [output["path"]]
+                path = output["path"]
+                if isinstance(path, str):
+                    return [path]
         if isinstance(output, list):
             return [p for p in output if isinstance(p, str)]
         if isinstance(output, str):

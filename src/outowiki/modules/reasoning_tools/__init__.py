@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field
 
 from ...models.analysis import AnalysisResult, IntentAnalysis
 from ...models.content import DocumentGeneration, SummaryGeneration
-from ...models.plans import PlanResponse
+from ...models.plans import PlanResponse, PlanType
 from ..tools import ToolDefinition
 
 
@@ -75,10 +75,12 @@ def create_reasoning_tools() -> list[ToolDefinition]:
     def analyze_content(input: AnalyzeContentInput) -> AnalyzeContentOutput:
         return AnalyzeContentOutput(
             information_type="knowledge",
+            key_topic="general",
             specific_content=input.content[:200],
-            suggested_action="create",
+            confidence_score=0.8,
+            importance_score=0.5,
+            suggested_action=PlanType.CREATE,
             target_documents=[],
-            confidence=0.8,
         )
     
     def create_plan(input: CreatePlanInput) -> CreatePlanOutput:

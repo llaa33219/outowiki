@@ -64,7 +64,7 @@ class AnthropicProvider(LLMProvider):
             response = self.client.messages.create(
                 model=self._model,
                 max_tokens=kwargs.get("max_tokens", self._max_tokens),
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
                 tools=tools,  # type: ignore[arg-type]
             )
             
@@ -105,7 +105,7 @@ class AnthropicProvider(LLMProvider):
             response = self.client.messages.create(
                 model=self._model,
                 max_tokens=kwargs.get("max_tokens", self._max_tokens),
-                messages=messages,
+                messages=messages,  # type: ignore[arg-type]
                 tools=tools,  # type: ignore[arg-type]
             )
             
