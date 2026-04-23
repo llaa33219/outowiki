@@ -623,15 +623,23 @@ Example: {{"matches": true}}"""
         return [content]
 
     def _split_topics_with_llm(self, content: str) -> Optional[List[str]]:
-        prompt = f"""Analyze this text and identify distinct topics mixed together.
+        prompt = f"""Analyze this text and identify ALL distinct topics/subjects that are mixed together.
 
 Text:
-{content[:2000]}
+{content[:3000]}
 
-Identify ALL distinct topics/subjects in this text. Each topic should be a separate block of content.
+IMPORTANT: Even if the text flows as one narrative, it may contain MULTIPLE unrelated subjects.
+For example, a text might discuss "Linux Mint", "aluminum chemistry", and "OpenBSD history" all in one paragraph.
+
+Your task:
+1. Identify EVERY distinct subject/topic mentioned
+2. Extract the content related to each topic separately
+3. Topics can be completely unrelated to each other
 
 Return a JSON object with a "topics" array containing the separated content blocks.
-Example: {{"topics": ["Topic 1 content...", "Topic 2 content...", "Topic 3 content..."]}}"""
+Example: {{"topics": ["Content about topic 1...", "Content about topic 2...", "Content about topic 3..."]}}
+
+Be thorough - extract ALL topics, even if there are 3, 4, or more."""
         
         try:
             result: Any = self.agent._call_with_schema(prompt, type('TopicSplitResult', (), {'topics': []}))
