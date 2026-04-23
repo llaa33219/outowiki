@@ -6,6 +6,8 @@ import re
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
+from pydantic import BaseModel
+
 from ..models.content import WikiDocument
 from ..models.analysis import AnalysisResult
 from ..models.plans import Plan, PlanType, CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan
@@ -13,6 +15,19 @@ from ..core.store import WikiStore
 from .agent import InternalAgent
 from ..core.exceptions import WikiStoreError
 from ..utils.markdown import extract_sections, parse_frontmatter
+
+
+class TopicSplitResult(BaseModel):
+    topics: List[str] = []
+
+class CategoryResult(BaseModel):
+    category: str = ""
+
+class KeywordResult(BaseModel):
+    keywords: List[str] = []
+
+class MatchResult(BaseModel):
+    matches: bool = False
 
 
 class RecordResult:
@@ -167,7 +182,7 @@ If no existing category fits well, suggest a NEW category path (e.g., "programmi
 Return the category path (e.g., "programming/python/web")."""
         
         try:
-            result: Any = self.agent._call_with_schema(prompt, type('CategoryResult', (), {'category': ''}))
+            result: Any = self.agent._call_with_schema(prompt, CategoryResult)
             if hasattr(result, 'category') and result.category:
                 self._create_category_if_needed(result.category)
                 return str(result.category)
@@ -554,7 +569,7 @@ Return a JSON object with a "keywords" array containing the main topics and keyw
 Example: {{"keywords": ["camera", "mobile app", "iOS", "Android"]}}"""
         
         try:
-            result: Any = self.agent._call_with_schema(prompt, type('KeywordResult', (), {'keywords': []}))
+            result: Any = self.agent._call_with_schema(prompt, KeywordResult)
             if hasattr(result, 'keywords') and result.keywords:
                 keywords = [k.strip().lower() for k in result.keywords if k.strip()]
                 return keywords
@@ -573,7 +588,7 @@ Return a JSON object with a "matches" boolean indicating if the category is rele
 Example: {{"matches": true}}"""
         
         try:
-            result: Any = self.agent._call_with_schema(prompt, type('MatchResult', (), {'matches': False}))
+            result: Any = self.agent._call_with_schema(prompt, MatchResult)
             if hasattr(result, 'matches'):
                 return bool(result.matches)
         except Exception as e:
@@ -651,7 +666,7 @@ Example: {{"topics": ["Content about topic 1...", "Content about topic 2...", "C
 Be thorough - extract ALL topics, even if there are 3, 4, or more."""
         
         try:
-            result: Any = self.agent._call_with_schema(prompt, type('TopicSplitResult', (), {'topics': []}))
+            result: Any = self.agent._call_with_schema(prompt, TopicSplitResult)
             if hasattr(result, 'topics') and result.topics:
                 topics = [t.strip() for t in result.topics if t.strip() and len(t.strip()) > 20]
                 if len(topics) > 1:
