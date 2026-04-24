@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any, Dict, List, Optional
 
@@ -14,33 +15,31 @@ from .wiki_tools import create_wiki_tools
 from .reasoning_tools import create_reasoning_tools
 
 
-SYSTEM_PROMPT = """You are a wiki search assistant. Your job is to analyze search queries and find relevant documents.
+SYSTEM_PROMPT = """You are a wiki search assistant. Your job is to find relevant documents for a search query.
 
 You have access to these tools:
-- analyze_search_intent: Analyze search query intent
-- read_document: Read a wiki document by path
-- list_folder: List files and folders in a wiki directory
 - list_categories: List all categories in the wiki
+- list_folder: List files and folders in a directory
+- read_document: Read a wiki document by path
 - generate_summary: Generate a summary of content
 
 Workflow:
-1. Analyze the search query to understand the intent
-2. Explore the wiki structure to find relevant documents
-3. Return the results with summaries if requested
+1. Use list_categories to see available categories
+2. Use list_folder to explore relevant categories
+3. Use read_document to check document content
+4. Return the paths of relevant documents
 
-Always use the tools provided. Do not describe what you will do - just do it."""
+When you have found all relevant documents, respond with a JSON object:
+{{"paths": ["path/to/doc1.md", "path/to/doc2.md", ...]}}
+
+Always use the tools to explore the wiki. Do not guess document paths - verify them first."""
 
 
 class SearcherWithAgentLoop:
     """Information search pipeline using AgentLoop.
 
-    Processes search queries through intent analysis, document
-    exploration, and result compilation.
-
-    Pipeline:
-        1. Analyze Intent: Understand what the user is looking for
-        2. Explore: Navigate wiki structure to find relevant documents
-        3. Return: Compile and format results
+    LLM explores the wiki structure, reads documents, and selects
+    the most relevant ones for the search query.
 
     Example:
         store = WikiStore("./wiki")
@@ -73,26 +72,23 @@ class SearcherWithAgentLoop:
         self.logger.debug(f"Searching for: {search_query.query}")
         self.logger.debug(f"Search parameters: category={search_query.category_filter}, max_results={search_query.max_results}, mode={search_query.return_mode}")
 
-        categories = self._get_categories()
-
-        user_message = f"""Search the wiki for relevant documents.
+        user_message = f"""Search the wiki for documents relevant to this query.
 
 Query: {search_query.query}
 Context: {search_query.context or 'General search'}
-Available categories: {categories}
+Max results: {search_query.max_results}
 
-Find documents that match this query and return their paths."""
+Explore the wiki structure, read documents to check relevance, and return the paths of the most relevant documents.
+When you have found all relevant documents, respond with: {{"paths": ["path1", "path2", ...]}}"""
 
         self.agent_loop.reset()
-        result = self.agent_loop.run(
-            user_message=user_message,
-            terminal_tools={"read_document"},
-        )
+        result = self.agent_loop.run(user_message=user_message)
 
         if result.truncated:
             self.logger.warning(f"Agent loop truncated after {result.steps} steps")
 
         paths = self._extract_paths_from_result(result.output)
+        self.logger.debug(f"LLM found {len(paths)} documents: {paths}")
 
         search_result = SearchResult(paths=paths[:search_query.max_results])
 
@@ -103,7 +99,7 @@ Find documents that match this query and return their paths."""
                 try:
                     doc = self.wiki.read_document(path)
                     summary_result = self.agent_loop.run(
-                        user_message=f"Generate a summary of this document:\n\n{doc.content[:1000]}",
+                        user_message=f"Generate a concise summary of this document:\n\n{doc.content[:1000]}",
                         terminal_tools={"generate_summary"},
                     )
                     if summary_result.output and isinstance(summary_result.output, dict):
@@ -130,6 +126,12 @@ Find documents that match this query and return their paths."""
         return search_result
 
     def _extract_paths_from_result(self, output: Any) -> List[str]:
+        if isinstance(output, str):
+            try:
+                output = json.loads(output)
+            except json.JSONDecodeError:
+                return [output] if output else []
+        
         if isinstance(output, dict):
             if "paths" in output:
                 paths = output["paths"]
@@ -141,23 +143,4 @@ Find documents that match this query and return their paths."""
                     return [path]
         if isinstance(output, list):
             return [p for p in output if isinstance(p, str)]
-        if isinstance(output, str):
-            return [output]
         return []
-
-    def _get_categories(self, max_depth: int = 4) -> List[str]:
-        categories: List[str] = []
-        self._collect_categories("", categories, 0, max_depth)
-        return categories
-
-    def _collect_categories(self, path: str, categories: List[str], depth: int, max_depth: int) -> None:
-        if depth >= max_depth:
-            return
-        try:
-            content = self.wiki.list_folder(path)
-            for folder in content['folders']:
-                folder_path = f"{path}/{folder}" if path else folder
-                categories.append(folder_path)
-                self._collect_categories(folder_path, categories, depth + 1, max_depth)
-        except WikiStoreError:
-            pass
