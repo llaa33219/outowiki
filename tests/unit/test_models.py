@@ -614,13 +614,13 @@ class TestCreatePlan:
                 metadata=DocumentMetadata(title="T", category="c"),
             )
 
-    def test_missing_metadata_raises(self):
-        with pytest.raises(ValidationError):
-            CreatePlan(
-                target_path="x",
-                reason="r",
-                content="c",
-            )
+    def test_missing_metadata_uses_default(self):
+        plan = CreatePlan(
+            target_path="x",
+            reason="r",
+            content="c",
+        )
+        assert plan.metadata is None
 
 
 class TestModifyPlan:

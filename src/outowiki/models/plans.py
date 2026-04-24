@@ -46,8 +46,8 @@ class CreatePlan(Plan):
 
     plan_type: Literal[PlanType.CREATE] = PlanType.CREATE
     content: str
-    title: str
-    metadata: DocumentMetadata
+    title: Optional[str] = None
+    metadata: Optional[DocumentMetadata] = None
     backlinks_to_add: List[str] = []
 
 

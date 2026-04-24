@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
 
-from ..models.content import WikiDocument
+from ..models.content import WikiDocument, DocumentMetadata
 from ..models.analysis import AnalysisResult
 from ..models.plans import Plan, PlanType, CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan
 from ..core.store import WikiStore
@@ -337,7 +337,8 @@ Return the category path (e.g., "programming/python/web")."""
         )
 
     def _execute_create(self, plan: CreatePlan) -> None:
-        category = plan.metadata.category
+        metadata = plan.metadata or DocumentMetadata()
+        category = metadata.category
         target_path = plan.target_path
         
         if category and '/' not in target_path:
@@ -346,26 +347,28 @@ Return the category path (e.g., "programming/python/web")."""
         elif not category:
             self.logger.debug(f"No category specified, using target_path as-is: {target_path}")
         
+        title = plan.title or target_path.split('/')[-1].replace('_', ' ').title()
+        
         generated_content = self.agent.generate_document(
             content=plan.content,
-            title=plan.title,
+            title=title,
             category=category or "",
-            tags=plan.metadata.tags,
-            related=plan.metadata.related
+            tags=metadata.tags,
+            related=metadata.related
         )
 
         _, body_content = parse_frontmatter(generated_content)
 
         doc = WikiDocument(
             path=target_path,
-            title=plan.title,
+            title=title,
             content=body_content,
             frontmatter={},
             created=datetime.now(),
             modified=datetime.now(),
-            tags=plan.metadata.tags,
+            tags=metadata.tags,
             category=category,
-            related=plan.metadata.related
+            related=metadata.related
         )
 
         self.wiki.write_document(target_path, doc)
