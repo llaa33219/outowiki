@@ -24,15 +24,29 @@ You have access to these tools:
 - delete_document: Delete a wiki document
 - generate_document: Generate document content from raw content
 
-Workflow:
-1. Check if content contains wikilinks like [[Document Name]]
-   - If wikilink exists, read that document and consider modifying it
-2. Use list_categories to find appropriate category
-3. Use list_folder to explore category structure
-4. Check if similar document already exists
-5. Either:
-   a. Modify existing document if content relates to it
-   b. Create new document in appropriate category
+CRITICAL WORKFLOW - Follow this EXACTLY:
+1. FIRST: Check for wikilinks like [[Document Name]]
+   - If wikilink exists, read that document FIRST
+   - If document exists, MODIFY it (append new content)
+   - Do NOT create duplicate documents
+
+2. SECOND: Search for existing similar documents
+   - Use list_categories to see all categories
+   - Use list_folder to explore relevant categories
+   - Use read_document to check document content
+   - Find if a similar document already exists
+
+3. THIRD: Decide action based on search results
+   - IF similar document found → MODIFY it (append/prepend/replace section)
+   - IF no similar document found → CREATE new document in appropriate category
+
+4. FOURTH: For NEW documents only
+   - Use list_categories to find best category
+   - Use list_folder to explore category structure
+   - Create document in the most appropriate location
+
+IMPORTANT: ALWAYS search before creating. NEVER create duplicate documents.
+If you find a document that covers similar topic, MODIFY it instead of creating new.
 
 IMPORTANT: Content may contain MULTIPLE topics.
 For example: "Python decorators are useful. React hooks are powerful."
@@ -42,8 +56,8 @@ This contains TWO topics:
 
 When you encounter multiple topics:
 1. Identify each distinct topic
-2. Process EACH topic separately
-3. Create or modify documents for ALL topics
+2. Search for existing documents for EACH topic
+3. Modify existing OR create new for EACH topic separately
 
 When you have finished recording, respond with a JSON object:
 {{"success": true, "actions": ["Created: path1", "Modified: path2"], "documents": ["path1", "path2"]}}
@@ -139,6 +153,11 @@ Wikilinks found: {wikilinks}
 Existing related documents: {existing_docs}
 Available categories: {categories}
 Recent documents: {recent_docs}
+
+CRITICAL: ALWAYS search for existing documents BEFORE creating new ones.
+1. Check wikilinks first - if document exists, modify it
+2. Search categories for similar documents
+3. Only create new if no existing document covers this topic
 
 IMPORTANT: This content may contain MULTIPLE topics. Process EACH topic separately.
 
