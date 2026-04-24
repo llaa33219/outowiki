@@ -28,6 +28,39 @@ CRITICAL REQUIREMENTS:
 - Title is used as the document's display name
 - plans MUST be an array of plan objects, NOT a JSON string
 
+CREATE PLAN - REQUIRED FIELDS:
+When creating a new document, you MUST provide ALL of these fields:
+- target_path: Path where document will be created (e.g., "programming/python/decorators")
+- reason: Why this document is being created
+- content: The FULL content of the new document in markdown format
+- title: Human-readable title (e.g., "Python Decorators Guide")
+- metadata: Object with title, tags, category, related documents
+
+Example CREATE plan:
+{{
+  "plan_type": "create",
+  "target_path": "programming/python/decorators",
+  "reason": "New information about Python decorators",
+  "content": "# Python Decorators\\n\\nDecorators are a powerful feature...",
+  "title": "Python Decorators Guide",
+  "metadata": {{
+    "title": "Python Decorators Guide",
+    "tags": ["python", "decorators"],
+    "category": "programming/python",
+    "related": []
+  }}
+}}
+
+MODIFY PLAN - REQUIRED FIELDS:
+When modifying an existing document:
+- target_path: Path of document to modify
+- reason: Why this modification is needed
+- modifications: Array of changes to apply (each with section, operation, content)
+
+DELETE PLAN - REQUIRED FIELDS:
+- target_path: Path of document to delete
+- reason: Why this document should be deleted
+
 Create a plan with one or more of these actions:
 1. CREATE: New document at appropriate location (can be at root or in any folder)
 2. MODIFY: Update existing document with new information
