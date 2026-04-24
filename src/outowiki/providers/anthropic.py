@@ -82,7 +82,11 @@ class AnthropicProvider(LLMProvider):
                 try:
                     return schema.model_validate(tool_use.input)
                 except Exception as e:
-                    raise ProviderError(f"Schema validation failed: {e}") from e
+                    error_msg = f"Validation error: {e}"
+                    if text_content:
+                        messages.append({"role": "assistant", "content": "\n".join(text_content)})
+                    messages.append({"role": "user", "content": f"Error: {error_msg}. Please fix the missing or invalid fields and try again."})
+                    continue
             
             if text_content:
                 messages.append({"role": "assistant", "content": "\n".join(text_content)})

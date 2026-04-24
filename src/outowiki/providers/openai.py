@@ -79,18 +79,22 @@ class OpenAIProvider(LLMProvider):
             if message.tool_calls:
                 tool_call = message.tool_calls[0]
                 
-                if hasattr(tool_call.function, 'parsed_arguments') and tool_call.function.parsed_arguments:
-                    return schema.model_validate(tool_call.function.parsed_arguments)
-                
                 try:
+                    if hasattr(tool_call.function, 'parsed_arguments') and tool_call.function.parsed_arguments:
+                        return schema.model_validate(tool_call.function.parsed_arguments)
+                    
                     data = json.loads(tool_call.function.arguments)
                     return schema.model_validate(data)
                 except json.JSONDecodeError as e:
-                    raise ProviderError(
-                        f"Invalid tool arguments: {e}\nArguments were: {tool_call.function.arguments[:200]}"
-                    ) from e
+                    error_msg = f"Invalid JSON in tool arguments: {e}"
+                    messages.append({"role": "assistant", "content": message.content or ""})
+                    messages.append({"role": "user", "content": f"Error: {error_msg}. Please provide valid JSON."})
+                    continue
                 except Exception as e:
-                    raise ProviderError(f"Schema validation failed: {e}") from e
+                    error_msg = f"Validation error: {e}"
+                    messages.append({"role": "assistant", "content": message.content or ""})
+                    messages.append({"role": "user", "content": f"Error: {error_msg}. Please fix the missing or invalid fields and try again."})
+                    continue
             
             if message.content:
                 messages.append({"role": "assistant", "content": message.content})
