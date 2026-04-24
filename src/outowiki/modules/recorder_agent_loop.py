@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Any, Dict, List, Optional
 
 from ..core.store import WikiStore
@@ -13,24 +14,41 @@ from .wiki_tools import create_wiki_tools
 from .reasoning_tools import create_reasoning_tools
 
 
-SYSTEM_PROMPT = """You are a wiki recording assistant. Your job is to analyze content, create plans, and execute wiki operations.
+SYSTEM_PROMPT = """You are a wiki recording assistant. Your job is to analyze content and record it to the wiki.
 
 You have access to these tools:
-- analyze_content: Analyze raw content and extract structured information
-- create_plan: Create modification plans based on analysis
-- generate_document: Generate document content from raw content
+- list_categories: List all categories in the wiki
+- list_folder: List files and folders in a directory
 - read_document: Read a wiki document by path
 - write_document: Create or update a wiki document
 - delete_document: Delete a wiki document
-- list_folder: List files and folders in a wiki directory
-- list_categories: List all categories in the wiki
+- generate_document: Generate document content from raw content
 
 Workflow:
-1. Analyze the content to understand what information it contains
-2. Create a plan for how to record this information
-3. Execute the plan by creating, modifying, or deleting documents
+1. Check if content contains wikilinks like [[Document Name]]
+   - If wikilink exists, read that document and consider modifying it
+2. Use list_categories to find appropriate category
+3. Use list_folder to explore category structure
+4. Check if similar document already exists
+5. Either:
+   a. Modify existing document if content relates to it
+   b. Create new document in appropriate category
 
-Always use the tools provided. Do not describe what you will do - just do it."""
+IMPORTANT: Content may contain MULTIPLE topics.
+For example: "Python decorators are useful. React hooks are powerful."
+This contains TWO topics:
+- Python decorators (programming/python/)
+- React hooks (programming/javascript/react/)
+
+When you encounter multiple topics:
+1. Identify each distinct topic
+2. Process EACH topic separately
+3. Create or modify documents for ALL topics
+
+When you have finished recording, respond with a JSON object:
+{{"success": true, "actions": ["Created: path1", "Modified: path2"], "documents": ["path1", "path2"]}}
+
+Always use the tools to explore the wiki. Do not guess - verify paths and content first."""
 
 
 class RecordResult:
@@ -57,13 +75,13 @@ class RecordResult:
 class RecorderWithAgentLoop:
     """Information recording pipeline using AgentLoop.
 
-    Processes raw content through analysis, planning, and execution
-    to update the wiki with new information.
+    LLM analyzes content, explores wiki structure, and decides
+    whether to create new documents or modify existing ones.
 
-    Pipeline:
-        1. Analyze: Extract structured information from raw input
-        2. Plan: Determine what wiki operations to perform
-        3. Execute: Apply the plans to update documents
+    Supports:
+    - Multi-topic content: Each topic recorded separately
+    - Existing document modification: Finds and updates related docs
+    - Wikilink support: [[Document Name]] syntax for direct linking
 
     Example:
         store = WikiStore("./wiki")
@@ -105,6 +123,8 @@ class RecorderWithAgentLoop:
             self.logger.debug(f"Recording content: {raw_content[:100]}...")
             self.logger.debug(f"Content type: {content_type}, Context: {context}")
 
+            wikilinks = self._parse_wikilinks(raw_content)
+            existing_docs = self._find_existing_documents(raw_content, wikilinks)
             categories = self._get_categories()
             recent_docs = self._get_recent_docs()
 
@@ -115,22 +135,23 @@ Content:
 
 Content type: {content_type}
 
+Wikilinks found: {wikilinks}
+Existing related documents: {existing_docs}
 Available categories: {categories}
 Recent documents: {recent_docs}
 
-Analyze the content, create a plan, and execute it."""
+IMPORTANT: This content may contain MULTIPLE topics. Process EACH topic separately.
+
+Analyze the content, explore the wiki, and record ALL topics appropriately.
+When finished, respond with: {{"success": true, "actions": [...], "documents": [...]}}"""
 
             self.agent_loop.reset()
-            result = self.agent_loop.run(
-                user_message=user_message,
-                terminal_tools={"write_document", "delete_document"},
-            )
+            result = self.agent_loop.run(user_message=user_message)
 
             if result.truncated:
                 self.logger.warning(f"Agent loop truncated after {result.steps} steps")
 
-            actions = self._extract_actions_from_history(result.history)
-            affected = self._extract_affected_from_history(result.history)
+            actions, affected = self._extract_result(result.output, result.history)
 
             return RecordResult(
                 success=len(actions) > 0,
@@ -147,8 +168,42 @@ Analyze the content, create a plan, and execute it."""
                 error=str(e)
             )
 
-    def _extract_actions_from_history(self, history: list[dict[str, Any]]) -> list[str]:
+    def _parse_wikilinks(self, content: str) -> List[str]:
+        pattern = r'\[\[([^\]|]+)(?:\|[^\]]+)?\]\]'
+        links = re.findall(pattern, content)
+        self.logger.debug(f"Parsed wikilinks: {links}")
+        return links
+
+    def _find_existing_documents(self, content: str, wikilinks: List[str]) -> List[str]:
+        existing = []
+        
+        for link in wikilinks:
+            normalized = link.replace(' ', '_').lower()
+            if self.wiki.document_exists(normalized):
+                existing.append(normalized)
+                self.logger.debug(f"Found via wikilink: {normalized}")
+            elif self.wiki.document_exists(link):
+                existing.append(link)
+                self.logger.debug(f"Found via wikilink: {link}")
+        
+        return existing
+
+    def _extract_result(self, output: Any, history: list[dict[str, Any]]) -> tuple[List[str], List[str]]:
         actions = []
+        affected = set()
+        
+        if isinstance(output, str):
+            try:
+                output = json.loads(output)
+            except json.JSONDecodeError:
+                pass
+        
+        if isinstance(output, dict):
+            if "actions" in output and isinstance(output["actions"], list):
+                actions.extend([a for a in output["actions"] if isinstance(a, str)])
+            if "documents" in output and isinstance(output["documents"], list):
+                affected.update([d for d in output["documents"] if isinstance(d, str)])
+        
         for msg in history:
             if msg.get("role") == "tool":
                 content = msg.get("content", "")
@@ -157,25 +212,11 @@ Analyze the content, create a plan, and execute it."""
                     if isinstance(data, dict) and data.get("success"):
                         path = data.get("path", "")
                         if path:
-                            actions.append(f"Modified: {path}")
-                except json.JSONDecodeError:
-                    pass
-        return actions
-
-    def _extract_affected_from_history(self, history: list[dict[str, Any]]) -> list[str]:
-        affected = set()
-        for msg in history:
-            if msg.get("role") == "tool":
-                content = msg.get("content", "")
-                try:
-                    data = json.loads(content)
-                    if isinstance(data, dict):
-                        path = data.get("path", "")
-                        if path:
                             affected.add(path)
                 except json.JSONDecodeError:
                     pass
-        return list(affected)
+        
+        return actions, list(affected)
 
     def _get_categories(self, max_depth: int = 4) -> List[str]:
         categories: List[str] = []
