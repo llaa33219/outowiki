@@ -29,6 +29,17 @@ Workflow:
 3. Use read_document to check document content
 4. Return the paths of relevant documents
 
+IMPORTANT: Search queries may contain MULTIPLE topics or subjects.
+For example, "Python decorators and React hooks" contains TWO topics:
+- Python decorators (likely in programming/python/)
+- React hooks (likely in programming/javascript/react/)
+
+When you encounter multiple topics:
+1. Identify each distinct topic in the query
+2. Search for each topic separately in its likely category
+3. Collect documents for ALL topics
+4. Return ALL relevant documents from ALL topics
+
 When you have found all relevant documents, respond with a JSON object:
 {{"paths": ["path/to/doc1.md", "path/to/doc2.md", ...]}}
 
@@ -77,6 +88,8 @@ class SearcherWithAgentLoop:
 Query: {search_query.query}
 Context: {search_query.context or 'General search'}
 Max results: {search_query.max_results}
+
+IMPORTANT: This query may contain MULTIPLE topics. Search for EACH topic separately and collect documents for ALL topics.
 
 Explore the wiki structure, read documents to check relevance, and return the paths of the most relevant documents.
 When you have found all relevant documents, respond with: {{"paths": ["path1", "path2", ...]}}"""
