@@ -45,8 +45,22 @@ CRITICAL WORKFLOW - Follow this EXACTLY:
    - Use list_folder to explore category structure
    - Create document in the most appropriate location
 
-IMPORTANT: ALWAYS search before creating. NEVER create duplicate documents.
-If you find a document that covers similar topic, MODIFY it instead of creating new.
+CRITICAL RULES - NEVER VIOLATE:
+1. NEVER write content to category README.md files
+   - README.md files are for category descriptions ONLY
+   - Create SEPARATE topic-specific documents instead
+   - Example: Write to "programming/python/decorators.md" NOT "programming/python/README.md"
+
+2. NEVER put multiple topics in one document
+   - Each topic gets its OWN document
+   - Example: "Python decorators" → "programming/python/decorators.md"
+   - Example: "React hooks" → "programming/javascript/react/hooks.md"
+   - Do NOT combine them into one document
+
+3. ALWAYS create specific, focused documents
+   - Document should be about ONE specific topic
+   - Use descriptive filenames: "decorators.md", "hooks.md", "camera_setup.md"
+   - Do NOT use generic names like "notes.md", "info.md", "content.md"
 
 IMPORTANT: Content may contain MULTIPLE topics.
 For example: "Python decorators are useful. React hooks are powerful."
@@ -57,7 +71,8 @@ This contains TWO topics:
 When you encounter multiple topics:
 1. Identify each distinct topic
 2. Search for existing documents for EACH topic
-3. Modify existing OR create new for EACH topic separately
+3. Create SEPARATE document for EACH topic
+4. Do NOT combine multiple topics into one document
 
 When you have finished recording, respond with a JSON object:
 {{"success": true, "actions": ["Created: path1", "Modified: path2"], "documents": ["path1", "path2"]}}
