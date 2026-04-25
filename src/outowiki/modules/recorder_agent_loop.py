@@ -45,6 +45,11 @@ CRITICAL WORKFLOW - Follow this EXACTLY:
    - Use list_folder to explore category structure
    - Create document in the most appropriate location
 
+CRITICAL: VERIFY document exists BEFORE creating MODIFY plan
+- ALWAYS use read_document to verify the document exists
+- If document does NOT exist, use CREATE plan instead
+- NEVER assume a document exists - always verify first
+
 CRITICAL RULES - NEVER VIOLATE:
 1. NEVER write content to category README.md files
    - README.md files are for category descriptions ONLY

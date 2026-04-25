@@ -373,9 +373,13 @@ Return the category path (e.g., "programming/python/web")."""
 
     def _execute_modify(self, plan: ModifyPlan) -> None:
         """Execute a modify plan."""
-        if self.wiki.document_exists(plan.target_path):
-            self.wiki.save_version(plan.target_path, "modify")
-
+        if not self.wiki.document_exists(plan.target_path):
+            raise WikiStoreError(
+                f"Cannot modify document that does not exist: {plan.target_path}. "
+                f"Please use CREATE plan instead, or verify the document path."
+            )
+        
+        self.wiki.save_version(plan.target_path, "modify")
         doc = self.wiki.read_document(plan.target_path)
 
         for mod in plan.modifications:
