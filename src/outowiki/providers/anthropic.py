@@ -82,10 +82,20 @@ class AnthropicProvider(LLMProvider):
                 try:
                     return schema.model_validate(tool_use.input)
                 except Exception as e:
-                    error_msg = f"Validation error: {e}"
+                    error_details = str(e)
+                    
+                    if "list_type" in error_details:
+                        error_msg = f"Validation error: {error_details}\nYou returned a STRING but an ARRAY is required. Return a JSON array like: [{{...}}, {{...}}]"
+                    elif "missing" in error_details.lower() or "required" in error_details.lower():
+                        error_msg = f"Validation error: {error_details}\nSome required fields are MISSING. Check the schema and provide ALL required fields."
+                    elif "type=" in error_details:
+                        error_msg = f"Validation error: {error_details}\nField types are INCORRECT. Check the schema and provide correct types."
+                    else:
+                        error_msg = f"Validation error: {error_details}\nPlease fix the errors above and try again."
+                    
                     if text_content:
                         messages.append({"role": "assistant", "content": "\n".join(text_content)})
-                    messages.append({"role": "user", "content": f"Error: {error_msg}. Please fix the missing or invalid fields and try again."})
+                    messages.append({"role": "user", "content": f"ERROR: {error_msg}"})
                     continue
             
             if text_content:
