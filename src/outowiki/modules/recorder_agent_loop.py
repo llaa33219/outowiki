@@ -74,17 +74,18 @@ CRITICAL RULES - NEVER VIOLATE:
    - Title should summarize the document's content clearly
    - File path is for organization, Title is for display
 
+   IMPORTANT: Title should MATCH the filename (without .md extension)
    Examples:
-   - Path: "programming/python/decorators" → Title: "Python Decorators Guide"
-   - Path: "science/chemistry/elements/aluminum" → Title: "Aluminum: Properties and Uses"
-   - Path: "users/alice/preferences" → Title: "Alice's Preferences"
-   - Path: "tools/camera/react_native" → Title: "React Native Camera Setup"
+   - Path: "programming/python/decorators" → Title: "decorators"
+   - Path: "science/chemistry/elements/aluminum" → Title: "aluminum"
+   - Path: "users/alice/preferences" → Title: "preferences"
+   - Path: "tools/camera/react_native" → Title: "react_native"
 
    BAD titles (DO NOT USE):
-   - "programming/python/decorators" (repeating path)
-   - "decorator" (too short, not descriptive)
-   - "Document about decorators" (vague)
-   - "New Document" (meaningless)
+   - "Python Decorators Guide" (doesn't match filename "decorators")
+   - "Aluminum: Properties and Uses" (doesn't match filename "aluminum")
+   - "Alice's Preferences" (doesn't match filename "preferences")
+   - "React Native Camera Setup" (doesn't match filename "react_native")
 
 IMPORTANT: Content may contain MULTIPLE topics.
 For example: "Python decorators are useful. React hooks are powerful."

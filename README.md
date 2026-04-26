@@ -85,7 +85,7 @@ from outowiki import OutoWiki, WikiConfig
 config = WikiConfig(
     provider="openai",
     api_key="sk-...",
-    model="gpt-4",
+    model="gpt-5.2",
     wiki_path="./my_wiki",
     debug=True,  # Enable debug logging
     log_level="DEBUG"  # Optional: set log level
