@@ -9,14 +9,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from outowiki.core.store import WikiStore
-from outowiki.models.content import DocumentMetadata, WikiDocument
-from outowiki.models.plans import (
-    CreatePlan,
-    MergePlan,
-    ModifyPlan,
-    PlanType,
-    SplitPlan,
-)
+from outowiki.models.content import WikiDocument
 from outowiki.modules.agent_loop import AgentLoop
 from outowiki.modules.recorder_agent_loop import (
     RecorderWithAgentLoop,

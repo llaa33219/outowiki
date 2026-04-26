@@ -17,8 +17,6 @@ from ..modules.agent import InternalAgent
 from ..modules.agent_loop import AgentLoop
 from ..modules.recorder_agent_loop import RecorderWithAgentLoop, RecordResult, SYSTEM_PROMPT as RECORDER_SYSTEM_PROMPT
 from ..modules.searcher_agent_loop import SearcherWithAgentLoop, SYSTEM_PROMPT as SEARCHER_SYSTEM_PROMPT
-from ..modules.recorder import Recorder
-from ..modules.searcher import Searcher
 
 
 class OutoWiki:

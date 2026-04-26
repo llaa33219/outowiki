@@ -10,7 +10,6 @@ import pytest
 
 from outowiki.core.store import WikiStore
 from outowiki.models.search import SearchQuery, SearchResult
-from outowiki.models.analysis import IntentAnalysis
 from outowiki.models.content import WikiDocument
 from outowiki.modules.agent_loop import AgentLoop
 from outowiki.modules.searcher_agent_loop import (

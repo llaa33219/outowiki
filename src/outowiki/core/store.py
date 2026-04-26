@@ -16,7 +16,7 @@ from ..utils.filesystem import (
     delete_file, list_files, list_folders, relative_to
 )
 from ..utils.backlinks import BacklinkManager
-from ..utils.validation import validate_document, title_to_filename
+from ..utils.validation import validate_document
 from .exceptions import WikiStoreError
 
 

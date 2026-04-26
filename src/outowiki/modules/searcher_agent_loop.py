@@ -13,7 +13,6 @@ from ..models.analysis import IntentAnalysis
 from ..models.content import WikiDocument
 from ..core.store import WikiStore
 from ..core.exceptions import WikiStoreError
-from ..providers.base import LLMProvider
 from .agent_loop import AgentLoop
 from .tools import ToolDefinition
 from .wiki_tools import create_wiki_tools

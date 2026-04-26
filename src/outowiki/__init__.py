@@ -33,7 +33,7 @@ from .models.search import SearchQuery, SearchResult
 from .models.plans import PlanType, Plan, CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan
 from .models.analysis import AnalysisResult, IntentAnalysis
 from .modules.recorder import Recorder, RecordResult
-from .modules.recorder_agent_loop import RecorderWithAgentLoop, RecordResult as AgentLoopRecordResult
+from .modules.recorder_agent_loop import RecorderWithAgentLoop
 from .modules.searcher import Searcher
 from .modules.searcher_agent_loop import SearcherWithAgentLoop
 from .modules.agent import InternalAgent
