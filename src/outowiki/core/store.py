@@ -261,6 +261,44 @@ class WikiStore:
 
         return index
 
+    def search_titles(self, query: str, max_results: int = 20) -> List[Dict[str, str]]:
+        """Search document titles by keyword matching.
+
+        Args:
+            query: Search query string
+            max_results: Maximum number of results to return
+
+        Returns:
+            List of dicts with 'path', 'title', 'category' for matching documents
+        """
+        query_lower = query.lower()
+        results: List[Dict[str, str]] = []
+
+        for doc_path in self.root.rglob("*.md"):
+            try:
+                content = read_file(doc_path)
+                frontmatter, _ = parse_frontmatter(content)
+
+                title = frontmatter.get('title', doc_path.stem)
+                title_lower = title.lower()
+
+                if query_lower in title_lower:
+                    rel_path = relative_to(self.root, doc_path)
+                    category = str(doc_path.parent.relative_to(self.root)) if doc_path.parent != self.root else ""
+
+                    results.append({
+                        'path': rel_path.replace('.md', ''),
+                        'title': title,
+                        'category': category
+                    })
+
+                    if len(results) >= max_results:
+                        break
+            except Exception:
+                continue
+
+        return results
+
     # ── History tracking ────────────────────────────────────────────
 
     def _history_dir(self) -> Path:

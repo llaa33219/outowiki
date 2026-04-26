@@ -64,6 +64,15 @@ class ListCategoriesOutput(BaseModel):
     categories: list[str] = []
 
 
+class SearchTitlesInput(BaseModel):
+    query: str = Field(description="Search query to match against document titles")
+    max_results: int = Field(default=20, description="Maximum number of results to return")
+
+
+class SearchTitlesOutput(BaseModel):
+    results: list[dict[str, str]] = Field(default_factory=list, description="List of matching documents with path, title, category")
+
+
 def create_wiki_tools(wiki: WikiStore) -> list[ToolDefinition]:
     """Create wiki I/O tools bound to a WikiStore instance."""
     
@@ -121,6 +130,10 @@ def create_wiki_tools(wiki: WikiStore) -> list[ToolDefinition]:
         collect("", 0)
         return ListCategoriesOutput(categories=categories)
     
+    def search_titles(input: SearchTitlesInput) -> SearchTitlesOutput:
+        results = wiki.search_titles(input.query, input.max_results)
+        return SearchTitlesOutput(results=results)
+    
     return [
         ToolDefinition(
             name="read_document",
@@ -151,5 +164,11 @@ def create_wiki_tools(wiki: WikiStore) -> list[ToolDefinition]:
             description="List all categories in the wiki",
             input_model=ListCategoriesInput,
             handler=list_categories,
+        ),
+        ToolDefinition(
+            name="search_titles",
+            description="Search document titles by keyword. FAST way to find documents by title.",
+            input_model=SearchTitlesInput,
+            handler=search_titles,
         ),
     ]
