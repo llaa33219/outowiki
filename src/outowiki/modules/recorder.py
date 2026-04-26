@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
+from pathlib import PurePosixPath
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
@@ -15,6 +16,7 @@ from ..core.store import WikiStore
 from .agent import InternalAgent
 from ..core.exceptions import WikiStoreError
 from ..utils.markdown import extract_sections, parse_frontmatter
+from ..utils.validation import validate_document, title_to_filename
 
 
 class TopicSplitResult(BaseModel):
@@ -339,13 +341,29 @@ Return the category path (e.g., "programming/python/web")."""
     def _execute_create(self, plan: CreatePlan) -> None:
         category = plan.metadata.category
         target_path = plan.target_path
-        
+
+        is_valid, errors = validate_document(plan.title, target_path, plan.metadata.tags)
+        if not is_valid:
+            for error in errors:
+                self.logger.warning(f"Validation warning: {error}")
+            if any("must be in English" in e for e in errors):
+                raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
+
+        path_obj = PurePosixPath(target_path)
+        path_filename = path_obj.name
+        if path_filename.endswith('.md'):
+            path_filename = path_filename[:-3]
+        expected_filename = title_to_filename(plan.title)
+        if path_filename != expected_filename:
+            target_path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
+            self.logger.debug(f"Auto-corrected filename to match title: {target_path}")
+
         if category and '/' not in target_path:
             target_path = f"{category}/{target_path}"
             self.logger.debug(f"Using category as path prefix: {target_path}")
         elif not category:
             self.logger.debug(f"No category specified, using target_path as-is: {target_path}")
-        
+
         generated_content = self.agent.generate_document(
             content=plan.content,
             title=plan.title,

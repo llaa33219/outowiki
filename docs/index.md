@@ -17,18 +17,20 @@ OutoWiki follows Wikipedia/NamuWiki classification principles:
 
 ### Key Features
 
+- **LLM-Driven Processing** - All analysis, exploration, and decision-making by LLM (no Python pre-processing)
+- **AgentLoop Architecture** - Unified agent with tool-calling and conversation history
 - **Folder-Based Classification** - Categories are folders, no preset categories forced
 - **Dynamic Category Creation** - Create new categories as needed
-- **Category Tree Exploration** - Navigate and explore category hierarchy
 - **Required Title Validation** - title is REQUIRED for all documents, auto-retry if missing
 - **Title-Filename Consistency** - Document title must match filename (Wikipedia-style naming)
 - **Fast Title Search** - `search_titles` tool for quick document discovery by title
 - **Search-Before-Create** - Always search for existing documents before creating new ones
-- **LLM-Based Processing** - Keyword extraction, category matching, topic splitting all use LLM
 - **Full Document Delivery** - Entire document content delivered to LLM (no 500-character limit)
 - **Section-Based Editing** - Wikipedia-style section editing (append, prepend, replace)
 - **Multi-Topic Support** - Process multiple topics separately, create one document per topic
 - **Wikilink Support** - Direct document connection via `[[Document Name]]` syntax
+- **Version Tracking** - Automatic version saving for all document operations
+- **Relevance Scoring** - Title/content/tag/category scoring for search results
 
 ### Architecture
 
@@ -40,26 +42,36 @@ OutoWiki follows Wikipedia/NamuWiki classification principles:
                       │
          ┌────────────┼────────────┐
          │            │            │
-    ┌────▼────┐  ┌────▼────┐  ┌────▼────┐
-    │Recorder │  │Searcher │  │AgentLoop│
-    │ Module  │  │ Module  │  │         │
-    └────┬────┘  └────┬────┘  └────┬────┘
-         │            │            │
-    ┌────▼────────────▼────────────▼────┐
-    │           LLM Provider            │
-    │   (OpenAI or Anthropic)          │
-    └──────────────────────────────────┘
+    ┌────▼─────────┐  ┌────▼────┐  ┌────▼────┐
+    │   Recorder   │  │Searcher │  │AgentLoop│
+    │  WithLoop    │  │WithLoop │  │         │
+    └────┬─────────┘  └────┬────┘  └────┬────┘
+         │                 │            │
+         └─────────────────┼────────────┘
+                           │
+    ┌──────────────────────▼──────────────────────┐
+    │              Tool Registry                   │
+    │  ┌─────────┐ ┌──────────┐ ┌─────────────┐  │
+    │  │Wiki I/O │ │Reasoning │ │ Specialized │  │
+    │  │ Tools   │ │  Tools   │ │    Tools    │  │
+    │  └─────────┘ └──────────┘ └─────────────┘  │
+    └──────────────────────┬──────────────────────┘
+                           │
+    ┌──────────────────────▼──────────────────────┐
+    │              LLM Provider                    │
+    │         (OpenAI or Anthropic)                │
+    └──────────────────────────────────────────────┘
 ```
 
 The system has three main components:
 
-- **Recorder**: Processes new content using Wiki-style topic classification (is-a relationship), determines document placement, manages backlinks. Uses search-before-create workflow with `search_titles` for fast document discovery.
-- **Searcher**: Finds relevant documents using title search and LLM-based relevance analysis. Supports multi-topic queries.
-- **AgentLoop**: Unified LLM agent with tool-calling and conversation history, manages multi-turn tool chaining
+- **RecorderWithAgentLoop**: Uses AgentLoop for all recording operations. LLM autonomously analyzes content, explores wiki structure, and decides whether to create/modify/merge/split/delete documents. **No Python pre-processing** - all decisions made by LLM.
+- **SearcherWithAgentLoop**: Uses AgentLoop for all search operations. LLM autonomously explores the wiki using search tools, applies relevance scoring, and returns relevant documents.
+- **AgentLoop**: Unified LLM agent with tool-calling and conversation history. Manages multi-turn tool chaining and maintains context across operations.
 
 ### AgentLoop Architecture
 
-OutoWiki uses a unified agent loop for LLM operations:
+OutoWiki uses a unified agent loop for LLM operations. **All analysis, exploration, and decision-making is performed by the LLM** using tools.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -70,23 +82,37 @@ OutoWiki uses a unified agent loop for LLM operations:
          ┌────────────┼────────────┐
          │            │            │
     ┌────▼────┐  ┌────▼────┐  ┌────▼────┐
-    │Wiki I/O │  │Reasoning│  │ Tool    │
-    │ Tools   │  │ Tools   │  │Registry │
+    │Wiki I/O │  │Reasoning│  │Special- │
+    │ Tools   │  │ Tools   │  │  ized   │
+    │         │  │         │  │  Tools  │
     └─────────┘  └─────────┘  └─────────┘
 ```
 
 **Key Benefits:**
-- **Conversation History**: LLM sees previous results when planning
-- **Tool Chaining**: LLM automatically chains tool calls
-- **Context Continuity**: No redundant context injection
-- **Automatic Progression**: No user intervention needed
+- **LLM-Driven**: All decisions made by LLM, not Python pre-processing
+- **Conversation History**: LLM sees previous tool results when planning next steps
+- **Tool Chaining**: LLM automatically chains tool calls based on what it finds
+- **No Duplication**: Single source of truth - LLM handles everything
+- **Adaptive Strategy**: LLM adjusts approach based on wiki state
 
-**Example Flow:**
+**Example Recording Flow:**
 ```python
-result = agent_loop.run(
-    user_message="Record this content to the wiki...",
-)
-# LLM automatically: search_titles → read_document → generate_document → write_document
+result = recorder.record("User prefers Python for web development")
+# LLM automatically:
+# 1. Calls split_topics → identifies single topic
+# 2. Calls search_titles → finds existing doc
+# 3. Calls read_document → verifies content
+# 4. Calls execute_modify_plan → appends new info
+```
+
+**Example Search Flow:**
+```python
+results = searcher.search("Python web frameworks")
+# LLM automatically:
+# 1. Calls analyze_search_intent → determines strategy
+# 2. Calls search_specific → checks exact paths
+# 3. Calls search_folder_with_scoring → finds relevant docs
+# 4. Returns paths with relevance ranking
 ```
 
 ### Wiki Structure

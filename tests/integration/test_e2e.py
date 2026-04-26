@@ -2,14 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from outowiki import OutoWiki, WikiConfig
-from outowiki.models.analysis import AnalysisResult, IntentAnalysis
-from outowiki.models.plans import PlanType, CreatePlan
-from outowiki.models.content import DocumentMetadata
+from outowiki.providers.base import ProviderResponse, ToolCall
 
 
 @pytest.fixture
@@ -18,29 +17,14 @@ def mock_provider():
     provider.complete.return_value = "Mock response"
 
     def mock_schema(prompt, schema, **kwargs):
-        if schema is AnalysisResult:
-            return AnalysisResult(
-                information_type="conversation",
-                key_topic="test",
-                specific_content="Test content",
-                existing_relations=[],
-                temporal_range="timeless",
-                confidence_score=0.9,
-                importance_score=0.8,
-                suggested_action=PlanType.CREATE,
-                target_documents=[]
-            )
-        if schema is IntentAnalysis:
-            return IntentAnalysis(
-                information_type="knowledge",
-                specificity_level="general",
-                temporal_interest="all_time",
-                exploration_start="root",
-                confidence_requirement="low"
-            )
         return schema()
 
     provider.complete_with_schema.side_effect = mock_schema
+    provider.chat_with_tools.return_value = ProviderResponse(
+        content='{"success": true, "actions": [], "documents": []}',
+        tool_calls=None,
+        finish_reason="stop",
+    )
     return provider
 
 
@@ -62,31 +46,45 @@ def wiki(wiki_config, mock_provider):
 
 
 def test_record_creates_document(wiki, mock_provider):
-    wiki._agent.plan = MagicMock(return_value=[
-        CreatePlan(
-            plan_type=PlanType.CREATE,
-            target_path="test/document",
-            reason="Test creation",
-            content="Test content",
-            title="Test Document",
-            metadata=DocumentMetadata(
-                title="Test Document",
-                category="test",
-                tags=["test"]
-            )
-        )
-    ])
+    call_count = 0
 
-    wiki._agent.generate_document = MagicMock(return_value="# Test Document\n\nTest content")
+    def mock_chat(messages, tools, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return ProviderResponse(
+                content=None,
+                tool_calls=[
+                    ToolCall(
+                        id="call_1",
+                        name="execute_create_plan",
+                        arguments=json.dumps({
+                            "target_path": "test/test_document",
+                            "title": "Test Document",
+                            "content": "# Test Document\n\nTest content",
+                            "category": "test",
+                            "tags": ["test"],
+                            "related": [],
+                        }),
+                    )
+                ],
+                finish_reason="tool_calls",
+            )
+        return ProviderResponse(
+            content='{"success": true, "actions": ["Created: test/test_document"], "documents": ["test/test_document"]}',
+            tool_calls=None,
+            finish_reason="stop",
+        )
+
+    mock_provider.chat_with_tools.side_effect = mock_chat
 
     result = wiki.record("Test information")
 
     assert result.success
-    assert "Created: test/document" in result.actions_taken
-    assert wiki.wiki_path.joinpath("test/document.md").exists()
+    assert wiki.wiki_path.joinpath("test/test_document.md").exists()
 
 
-def test_search_returns_paths(wiki):
+def test_search_returns_paths(wiki, mock_provider):
     test_dir = wiki.wiki_path / "knowledge"
     test_dir.mkdir(parents=True, exist_ok=True)
     test_doc = test_dir / "python.md"
@@ -101,6 +99,35 @@ category: knowledge
 
 Python is a programming language.
 """)
+
+    call_count = 0
+
+    def mock_chat(messages, tools, **kwargs):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            return ProviderResponse(
+                content=None,
+                tool_calls=[
+                    ToolCall(
+                        id="call_1",
+                        name="search_folder_with_scoring",
+                        arguments=json.dumps({
+                            "folder": "",
+                            "query": "python",
+                            "specificity_level": "general",
+                        }),
+                    )
+                ],
+                finish_reason="tool_calls",
+            )
+        return ProviderResponse(
+            content='{"paths": ["knowledge/python"]}',
+            tool_calls=None,
+            finish_reason="stop",
+        )
+
+    mock_provider.chat_with_tools.side_effect = mock_chat
 
     results = wiki.search("python")
 
@@ -177,7 +204,7 @@ Original content.
     wiki.update_document("notes/note1", "# Note 1\n\nUpdated content.")
 
     doc = wiki.get_document("notes/note1")
-    assert "Updated content" in doc.content
+    assert "Updated content." in doc.content
 
 
 def test_delete_document(wiki):

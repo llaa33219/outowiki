@@ -16,6 +16,7 @@ from ..utils.filesystem import (
     delete_file, list_files, list_folders, relative_to
 )
 from ..utils.backlinks import BacklinkManager
+from ..utils.validation import validate_document, title_to_filename
 from .exceptions import WikiStoreError
 
 
@@ -99,6 +100,16 @@ class WikiStore:
         Raises:
             WikiStoreError: If write fails
         """
+        import logging
+        logger = logging.getLogger(__name__)
+
+        is_valid, errors = validate_document(document.title, path, document.tags)
+        if not is_valid:
+            for error in errors:
+                logger.warning(f"Store validation: {error}")
+            if any("must be in English" in e for e in errors):
+                raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
+
         doc_path = self._doc_path(path)
         ensure_directory(doc_path.parent)
 

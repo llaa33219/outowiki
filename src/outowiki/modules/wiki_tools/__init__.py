@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime
+from pathlib import PurePosixPath
 
 from pydantic import BaseModel, Field
 
 from ...core.store import WikiStore
+from ...core.exceptions import WikiStoreError
 from ...models.content import WikiDocument
+from ...utils.validation import validate_document, title_to_filename
 from ..tools import ToolDefinition
+
+logger = logging.getLogger(__name__)
 
 
 class ReadDocumentInput(BaseModel):
@@ -87,8 +93,25 @@ def create_wiki_tools(wiki: WikiStore) -> list[ToolDefinition]:
         )
     
     def write_document(input: WriteDocumentInput) -> WriteDocumentOutput:
+        is_valid, errors = validate_document(input.title, input.path, input.tags)
+        if not is_valid:
+            for error in errors:
+                logger.warning(f"Validation warning: {error}")
+            if any("must be in English" in e for e in errors):
+                raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
+
+        path = input.path
+        path_obj = PurePosixPath(path)
+        path_filename = path_obj.name
+        if path_filename.endswith('.md'):
+            path_filename = path_filename[:-3]
+        expected_filename = title_to_filename(input.title)
+        if path_filename != expected_filename:
+            path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
+            logger.debug(f"Auto-corrected filename to match title: {path}")
+
         doc = WikiDocument(
-            path=input.path,
+            path=path,
             title=input.title,
             content=input.content,
             frontmatter={},
@@ -98,8 +121,8 @@ def create_wiki_tools(wiki: WikiStore) -> list[ToolDefinition]:
             category=input.category,
             related=input.related,
         )
-        wiki.write_document(input.path, doc)
-        return WriteDocumentOutput(path=input.path)
+        wiki.write_document(path, doc)
+        return WriteDocumentOutput(path=path)
     
     def delete_document(input: DeleteDocumentInput) -> DeleteDocumentOutput:
         wiki.delete_document(input.path, remove_backlinks=input.remove_backlinks)

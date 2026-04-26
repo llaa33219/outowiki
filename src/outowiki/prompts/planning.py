@@ -46,6 +46,12 @@ Rules for converting title to filename:
 - Remove special characters (apostrophes, etc.)
 - Keep it concise but descriptive
 
+ENGLISH-ONLY RULE:
+- Title MUST be written in English ONLY
+- Tags MUST be written in English ONLY
+- Do NOT use Korean, Chinese, Japanese, or any non-English characters
+- Content can be in any language, but title and tags must be English
+
 GOOD examples (title → filename):
 - "Python Classes" → "python_classes.md"
 - "React Native Camera" → "react_native_camera.md"
@@ -56,6 +62,11 @@ BAD examples (inconsistent):
 - Title: "Python Classes" → Filename: "classes.md" (missing context)
 - Title: "React Native Camera" → Filename: "camera.md" (too generic)
 - Title: "Decorators" → Filename: "python_decorators.md" (mismatch)
+
+BAD examples (non-English - REJECTED):
+- Title: "Python 클래스" → REJECTED (must be English)
+- Title: "カメラ設定" → REJECTED (must be English)
+- Tags: ["python", "데코레이터"] → REJECTED (must be English)
 
 CREATE PLAN - REQUIRED FIELDS:
 When creating a new document, you MUST provide ALL of these fields:

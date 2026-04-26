@@ -33,8 +33,11 @@ from .models.search import SearchQuery, SearchResult
 from .models.plans import PlanType, Plan, CreatePlan, ModifyPlan, MergePlan, SplitPlan, DeletePlan
 from .models.analysis import AnalysisResult, IntentAnalysis
 from .modules.recorder import Recorder, RecordResult
+from .modules.recorder_agent_loop import RecorderWithAgentLoop, RecordResult as AgentLoopRecordResult
 from .modules.searcher import Searcher
+from .modules.searcher_agent_loop import SearcherWithAgentLoop
 from .modules.agent import InternalAgent
+from .modules.agent_loop import AgentLoop
 from .providers.base import LLMProvider
 
 __version__ = "0.6.7"
@@ -89,8 +92,11 @@ __all__ = [
     'IntentAnalysis',
     'Recorder',
     'RecordResult',
+    'RecorderWithAgentLoop',
     'Searcher',
+    'SearcherWithAgentLoop',
     'InternalAgent',
+    'AgentLoop',
     'LLMProvider',
     'OpenAIProvider',
     'AnthropicProvider',

@@ -14,7 +14,10 @@ from .config import WikiConfig
 from .store import WikiStore
 from .exceptions import ConfigError
 from ..modules.agent import InternalAgent
-from ..modules.recorder import Recorder, RecordResult
+from ..modules.agent_loop import AgentLoop
+from ..modules.recorder_agent_loop import RecorderWithAgentLoop, RecordResult, SYSTEM_PROMPT as RECORDER_SYSTEM_PROMPT
+from ..modules.searcher_agent_loop import SearcherWithAgentLoop, SYSTEM_PROMPT as SEARCHER_SYSTEM_PROMPT
+from ..modules.recorder import Recorder
 from ..modules.searcher import Searcher
 
 
@@ -103,8 +106,26 @@ class OutoWiki:
             init_default_folders=self.config.settings.init_default_folders
         )
         self._agent = InternalAgent(self._provider, self.logger)
-        self._recorder = Recorder(self._store, self._agent, self.logger)
-        self._searcher = Searcher(self._store, self._agent, self.logger)
+
+        recorder_loop = AgentLoop(
+            provider=self._provider,
+            tools=[],
+            system_prompt=RECORDER_SYSTEM_PROMPT,
+            max_iterations=20,
+            logger=self.logger,
+        )
+        self._recorder_loop = recorder_loop
+        self._recorder = RecorderWithAgentLoop(self._store, recorder_loop, self.logger)
+
+        searcher_loop = AgentLoop(
+            provider=self._provider,
+            tools=[],
+            system_prompt=SEARCHER_SYSTEM_PROMPT,
+            max_iterations=20,
+            logger=self.logger,
+        )
+        self._searcher_loop = searcher_loop
+        self._searcher = SearcherWithAgentLoop(self._store, searcher_loop, self.logger)
         
         if self.config.debug:
             self.logger.debug("OutoWiki initialized with debug mode enabled")

@@ -1,21 +1,142 @@
 # Search Strategies
 
-## Title Search (FASTEST)
+## Overview
 
-The fastest way to find documents is by searching titles. Use `search_titles` for quick document discovery:
+OutoWiki uses an **AgentLoop-based search pipeline** where the LLM autonomously explores the wiki to find relevant documents.
 
-```python
-# Title search is the FASTEST way to find documents
-# It searches document titles by keyword
-# Returns matching titles with their paths and categories
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    SearchQuery                               │
+│  • query: str                                               │
+│  • context: Optional[str]                                   │
+│  • category_filter: Optional[str]                           │
+│  • max_results: int                                         │
+│  • return_mode: "path" | "summary" | "full"                 │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SearcherWithAgentLoop                     │
+│  • Passes query to AgentLoop                                │
+│  • NO Python pre-processing                                 │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      AgentLoop (LLM)                        │
+│  LLM autonomously:                                          │
+│  1. Analyzes search intent                                  │
+│  2. Performs exact path matching                            │
+│  3. Searches folders with relevance scoring                 │
+│  4. Expands backlinks if needed                             │
+│  5. Returns relevant document paths                         │
+└─────────────────────────┬───────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    SearchResult                              │
+│  • paths: List[str]                                         │
+│  • summaries: Optional[Dict[str, str]]                      │
+│  • documents: Optional[Dict[str, WikiDocument]]             │
+│  • query_analysis: Optional[IntentAnalysis]                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Basic Search
+## Search Flow (LLM Perspective)
 
-For simple queries, pass a string directly:
+When `search()` is called, the LLM receives the query and autonomously follows this workflow:
+
+### 1. Intent Analysis
+```
+LLM calls analyze_search_intent tool:
+- Input: query, context, available categories
+- Output: IntentAnalysis (information_type, specificity_level, etc.)
+- Determines search strategy
+```
+
+### 2. Exact Path Matching
+```
+LLM calls search_specific tool:
+- Input: query, start_folder
+- Normalizes query (spaces → underscores, lowercase)
+- Checks exact path matches
+- Returns matching document paths
+```
+
+### 3. Folder Search with Scoring
+```
+LLM calls search_folder_with_scoring tool:
+- Input: folder, query, specificity_level
+- Scores documents by relevance:
+  • Title match: +0.5
+  • Content match: +0.3
+  • Tag match: +0.2
+  • Category match: +0.1
+- Includes documents scoring > 0.3
+- Recurses into subfolders for general queries
+```
+
+### 4. Backlink Expansion (if high confidence needed)
+```
+LLM calls expand_backlinks tool:
+- Input: document paths
+- Finds documents that reference given paths
+- Useful for discovering related content
+```
+
+## Available Tools for Search
+
+### Wiki I/O Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_titles` | **FAST** - Search document titles by keyword |
+| `list_categories` | List all categories in the wiki |
+| `list_folder` | List files and folders in a directory |
+| `read_document` | Read a wiki document by path |
+
+### Reasoning Tools
+
+| Tool | Description |
+|------|-------------|
+| `analyze_search_intent` | Analyze search query intent (calls LLM) |
+| `generate_summary` | Generate document summary (calls LLM) |
+
+### Searcher-Specific Tools
+
+| Tool | Description |
+|------|-------------|
+| `search_specific` | Find documents by exact path matching |
+| `search_folder_with_scoring` | Search folder with relevance scoring |
+| `expand_backlinks` | Find documents that link to given paths |
+
+## Search Modes
+
+### Path Mode (Default)
+Returns only document paths:
 
 ```python
 results = wiki.search("python web development")
+print(results.paths)  # ['programming/python/web.md', ...]
+```
+
+### Summary Mode
+Returns paths with summaries:
+
+```python
+results = wiki.search("python web development", return_mode="summary")
+for path in results.paths:
+    print(f"{path}: {results.summaries[path]}")
+```
+
+### Full Mode
+Returns paths with full document content:
+
+```python
+results = wiki.search("python web development", return_mode="full")
+for path, doc in results.documents.items():
+    print(f"=== {doc.title} ===")
+    print(doc.content)
 ```
 
 ## Category-Filtered Search
@@ -29,76 +150,61 @@ results = wiki.search(
 )
 ```
 
+The LLM receives the category filter and restricts its search to that category.
+
 ## Multi-Topic Search
 
-Search queries may contain multiple topics. The system searches for each topic separately and collects documents for all topics:
+Search queries may contain multiple topics:
 
 ```python
 # Query with multiple topics
 results = wiki.search("Python decorators and React hooks")
 
-# System identifies 2 topics:
+# LLM identifies 2 topics:
 # 1. "Python decorators" → searches for decorator-related documents
 # 2. "React hooks" → searches for hook-related documents
 
 # Returns documents from ALL topics
 ```
 
-### How Multi-Topic Search Works
+## Relevance Scoring
 
-1. **Identify topics**: LLM identifies distinct topics in the query
-2. **Search each topic**: Use `search_titles` for each topic separately
-3. **Collect all results**: Combine documents from all topics
-4. **Return relevant documents**: LLM selects most relevant ones
+The `search_folder_with_scoring` tool uses this scoring formula:
 
-## Detailed Search with Context
+```
+Score = 0.0
 
-Use `SearchQuery` for complex searches:
+if query in title (case-insensitive):
+    Score += 0.5
 
-```python
-from outowiki import SearchQuery
-from datetime import datetime
+if query in content (case-insensitive):
+    Score += 0.3
 
-results = wiki.search(
-    SearchQuery(
-        query="API design best practices",
-        context="building a REST API",
-        category_filter="concepts",
-        time_range=(datetime(2024, 1, 1), datetime(2024, 12, 31)),
-        max_results=10,
-        return_mode="summary"
-    )
-)
+if query in any tag (case-insensitive):
+    Score += 0.2  (first match only)
 
-# Access results
-for path in results.paths:
-    print(f"{path}: {results.summaries[path]}")
+if query in category (case-insensitive):
+    Score += 0.1
+
+Final Score = min(Score, 1.0)
+
+Inclusion threshold: Score > 0.3
 ```
 
-## Full Document Retrieval
+## Intent Analysis
 
-Get complete documents for detailed review:
+The search returns intent analysis that explains how the query was interpreted:
 
 ```python
-results = wiki.search(
-    "python async programming",
-    return_mode="full"
-)
+results = wiki.search("how do I handle errors in Python")
 
-for path, doc in results.documents.items():
-    print(f"=== {doc.metadata.title} ===")
-    print(doc.content)
+if results.query_analysis:
+    print(f"Information type: {results.query_analysis.information_type}")
+    print(f"Specificity: {results.query_analysis.specificity_level}")
+    print(f"Temporal interest: {results.query_analysis.temporal_interest}")
+    print(f"Exploration start: {results.query_analysis.exploration_start}")
+    print(f"Confidence requirement: {results.query_analysis.confidence_requirement}")
 ```
-
-## Summary Generation
-
-When `return_mode="summary"` or `return_mode="full"`, OutoWiki generates summaries using tool calls (function calling). This provides:
-
-- **Structured output** - Guaranteed valid summary format
-- **Type safety** - Pydantic schema validation
-- **Consistency** - Summaries follow a defined structure
-
-The `InternalAgent.generate_summary()` method returns `SummaryGeneration` schema via tool calls.
 
 ## Iterative Refinement
 
@@ -119,19 +225,6 @@ detailed = wiki.search(
 
 # Follow up with specific query based on findings
 follow_up = wiki.search(
-    f"Python compared to {', '.join([d.metadata.title for d in detailed.documents.values()[:3]])}"
+    f"Python compared to {', '.join([d.title for d in detailed.documents.values()[:3]])}"
 )
-```
-
-## Using Intent Analysis
-
-The search returns intent analysis that explains how the query was interpreted:
-
-```python
-results = wiki.search("how do I handle errors in Python")
-
-if results.query_analysis:
-    print(f"Primary intent: {results.query_analysis.primary_intent}")
-    print(f"Entities found: {results.query_analysis.entities}")
-    print(f"Categories: {results.query_analysis.suggested_categories}")
 ```

@@ -25,6 +25,25 @@ Follow these wiki conventions:
 - Use bullet points for lists
 - Include relevant links to related content
 
+TITLE AND TAGS RULES (CRITICAL):
+- Title and tags MUST be in English ONLY (no Korean, Chinese, Japanese, etc.)
+- Content can be in any language, but title and tags must be English
+- Title MUST match the filename (without .md extension)
+
+Title-to-filename conversion rules:
+- Convert to lowercase
+- Replace spaces with underscores
+- Remove special characters (apostrophes, etc.)
+
+Examples:
+- Title: "Python Classes" → Filename: "python_classes.md"
+- Title: "React Native Camera" → Filename: "react_native_camera.md"
+
+BAD examples (REJECTED):
+- Title: "Python 클래스" → REJECTED (must be English)
+- Title: "カメラ設定" → REJECTED (must be English)
+- Title: "Python Classes" + Filename: "classes.md" → REJECTED (mismatch)
+
 Return the complete document content using the DocumentGeneration tool."""
 
 SUMMARY_GENERATION_PROMPT = """Generate a brief summary of this document.

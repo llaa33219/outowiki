@@ -12,13 +12,14 @@ OutoWiki is a wiki-based knowledge management system designed for AI agents. It 
 
 ## Features
 
+- **AgentLoop Architecture** - LLM-driven processing with tool-calling and conversation history
+- **LLM-Driven Processing** - All analysis, exploration, and decision-making by LLM
 - **Folder-based wiki structure** with markdown documents
-- **LLM-powered information processing** (OpenAI, Anthropic)
 - **Automatic document classification and organization**
 - **Backlink system** for document relationships
 - **Document merge/split** with Wiki rules
+- **Version tracking** for all document operations
 - **Debug mode** for monitoring record/search operations
-- **AgentLoop architecture** for unified LLM tool-calling with conversation history
 
 ## Installation
 
