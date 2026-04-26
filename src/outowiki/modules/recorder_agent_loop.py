@@ -68,25 +68,33 @@ CRITICAL RULES - NEVER VIOLATE:
    - Use descriptive filenames: "decorators.md", "hooks.md", "camera_setup.md"
    - Do NOT use generic names like "notes.md", "info.md", "content.md"
 
-4. TITLE follows Wikipedia naming conventions
-   - Title should be RECOGNIZABLE - readers should understand what the document is about
-   - Title should be PRECISE - unambiguously identify the subject
-   - Title should be NATURAL - what people would naturally call it
-   - Title should be CONCISE - not longer than necessary
-   - Title should be CONSISTENT - follow similar patterns for similar topics
+4. TITLE and FILENAME must be CONSISTENT
+   - File name (without .md) should be derived from the title
+   - Title should match the file name (with underscores converted to spaces)
+   - This ensures consistency between file system and display
 
-   IMPORTANT: Include CONTEXT in the title when needed
    Examples:
-   - Path: "programming/python/classes" → Title: "Python Classes" (not just "Classes")
-   - Path: "science/chemistry/elements/aluminum" → Title: "Aluminum" (element name is clear)
-   - Path: "users/alice/preferences" → Title: "Alice's Preferences"
-   - Path: "tools/camera/react_native" → Title: "React Native Camera"
+   - Title: "Python Classes" → Filename: "python_classes.md"
+   - Title: "React Native Camera" → Filename: "react_native_camera.md"
+   - Title: "Alice's Preferences" → Filename: "alices_preferences.md"
+   - Title: "Aluminum" → Filename: "aluminum.md"
 
-   BAD titles (DO NOT USE):
-   - "Classes" (too generic - which classes? Python? Java? Biology?)
-   - "Decorators" (too generic - Python decorators? Interior decorators?)
-   - "Preferences" (too generic - whose preferences?)
-   - "Camera" (too generic - which camera? Phone camera? DSLR?)
+   Rules for converting title to filename:
+   - Convert to lowercase
+   - Replace spaces with underscores
+   - Remove special characters (apostrophes, etc.)
+   - Keep it concise but descriptive
+
+   GOOD examples (title → filename):
+   - "Python Classes" → "python_classes.md"
+   - "React Native Camera" → "react_native_camera.md"
+   - "Decorators in Python" → "decorators_in_python.md"
+   - "Aluminum Properties" → "aluminum_properties.md"
+
+   BAD examples (inconsistent):
+   - Title: "Python Classes" → Filename: "classes.md" (missing context)
+   - Title: "React Native Camera" → Filename: "camera.md" (too generic)
+   - Title: "Decorators" → Filename: "python_decorators.md" (mismatch)
 
 IMPORTANT: Content may contain MULTIPLE topics.
 For example: "Python decorators are useful. React hooks are powerful."
