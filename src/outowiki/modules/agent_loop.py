@@ -33,7 +33,7 @@ class AgentLoop:
         provider: LLMProvider,
         tools: list[ToolDefinition],
         system_prompt: str,
-        max_iterations: int = 20,
+        max_iterations: int = 80,
         logger: logging.Logger | None = None,
     ):
         self.provider = provider

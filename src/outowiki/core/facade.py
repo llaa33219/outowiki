@@ -109,7 +109,7 @@ class OutoWiki:
             provider=self._provider,
             tools=[],
             system_prompt=RECORDER_SYSTEM_PROMPT,
-            max_iterations=20,
+            max_iterations=80,
             logger=self.logger,
         )
         self._recorder_loop = recorder_loop
@@ -119,7 +119,7 @@ class OutoWiki:
             provider=self._provider,
             tools=[],
             system_prompt=SEARCHER_SYSTEM_PROMPT,
-            max_iterations=20,
+            max_iterations=80,
             logger=self.logger,
         )
         self._searcher_loop = searcher_loop
