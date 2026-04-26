@@ -1,5 +1,15 @@
 # Search Strategies
 
+## Title Search (FASTEST)
+
+The fastest way to find documents is by searching titles. Use `search_titles` for quick document discovery:
+
+```python
+# Title search is the FASTEST way to find documents
+# It searches document titles by keyword
+# Returns matching titles with their paths and categories
+```
+
 ## Basic Search
 
 For simple queries, pass a string directly:
@@ -18,6 +28,28 @@ results = wiki.search(
     category_filter="concepts/security"
 )
 ```
+
+## Multi-Topic Search
+
+Search queries may contain multiple topics. The system searches for each topic separately and collects documents for all topics:
+
+```python
+# Query with multiple topics
+results = wiki.search("Python decorators and React hooks")
+
+# System identifies 2 topics:
+# 1. "Python decorators" → searches for decorator-related documents
+# 2. "React hooks" → searches for hook-related documents
+
+# Returns documents from ALL topics
+```
+
+### How Multi-Topic Search Works
+
+1. **Identify topics**: LLM identifies distinct topics in the query
+2. **Search each topic**: Use `search_titles` for each topic separately
+3. **Collect all results**: Combine documents from all topics
+4. **Return relevant documents**: LLM selects most relevant ones
 
 ## Detailed Search with Context
 

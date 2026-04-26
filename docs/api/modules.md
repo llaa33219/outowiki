@@ -2,7 +2,7 @@
 
 ## Recorder
 
-The Recorder module handles processing and storing new content using Wiki-style topic classification.
+The Recorder module handles processing and storing new content using Wiki-style topic classification. Uses search-before-create workflow with `search_titles` for fast document discovery.
 
 ```python
 from outowiki.modules import Recorder
@@ -78,6 +78,28 @@ plan = CreatePlan(
 # "IMPORTANT: You MUST provide a title in metadata.title for EVERY plan. Title is REQUIRED."
 ```
 
+### Title-Filename Consistency
+
+**Document title MUST match filename.** This ensures consistency between file system and display:
+
+```
+Title: "Python Classes" → Filename: python_classes.md
+Title: "React Native Camera" → Filename: react_native_camera.md
+Title: "Aluminum" → Filename: aluminum.md
+```
+
+**Rules for converting title to filename:**
+- Convert to lowercase
+- Replace spaces with underscores
+- Remove special characters (apostrophes, etc.)
+- Keep it concise but descriptive
+
+| Title | Good Filename | Bad Filename |
+|-------|---------------|--------------|
+| Python Classes | `python_classes.md` | `classes.md` (missing context) |
+| React Native Camera | `react_native_camera.md` | `camera.md` (too generic) |
+| Decorators in Python | `decorators_in_python.md` | `python_decorators.md` (mismatch) |
+
 ### Folder-Based Classification
 
 Categories are **folders**. No preset categories are forced:
@@ -135,7 +157,7 @@ new_content = recorder._append_section_after(
 
 ## Searcher
 
-The Searcher module handles finding relevant documents.
+The Searcher module handles finding relevant documents. Prioritizes title search for fast discovery.
 
 ```python
 from outowiki.modules import Searcher
@@ -233,6 +255,7 @@ result = agent_loop.run(
 
 | Tool | Description |
 |------|-------------|
+| `search_titles` | **FAST** - Search document titles by keyword |
 | `read_document` | Read a wiki document by path |
 | `write_document` | Create or update a wiki document |
 | `delete_document` | Delete a wiki document |
@@ -254,14 +277,14 @@ result = agent_loop.run(
 ```
 User: "Record this content to the wiki..."
     ↓
-AgentLoop: analyze_content → create_plan → generate_document → write_document
+AgentLoop: search_titles → read_document → generate_document → write_document
     ↓
 Result: RecordResult(success=True, actions=['Created: path/to/doc.md'])
 ```
 
 ### RecorderWithAgentLoop
 
-The RecorderWithAgentLoop uses AgentLoop for the recording pipeline.
+The RecorderWithAgentLoop uses AgentLoop for the recording pipeline. It follows a search-before-create workflow to avoid duplicates.
 
 ```python
 from outowiki.modules.recorder_agent_loop import RecorderWithAgentLoop
@@ -270,9 +293,27 @@ recorder = RecorderWithAgentLoop(wiki_store, agent_loop)
 result = recorder.record("Content to record")
 ```
 
+**Workflow:**
+1. Check for wikilinks (`[[Document Name]]`) - if found, read that document first
+2. Use `search_titles` to find existing similar documents (FASTEST)
+3. If match found, read and MODIFY existing document
+4. If no match, explore categories and CREATE new document
+
+**Key Features:**
+- **Multi-Topic Support**: Content with multiple topics is split and each topic recorded separately
+- **Wikilink Support**: `[[Document Name]]` syntax for direct document linking
+- **Search-Before-Create**: Always searches for existing documents before creating new ones
+- **Document Verification**: Verifies document exists before MODIFY plan execution
+
+**Critical Rules:**
+- NEVER write to category README.md files (use topic-specific documents)
+- NEVER put multiple topics in one document
+- ALWAYS verify document existence before MODIFY plan
+- Title and filename MUST be consistent
+
 ### SearcherWithAgentLoop
 
-The SearcherWithAgentLoop uses AgentLoop for the search pipeline.
+The SearcherWithAgentLoop uses AgentLoop for the search pipeline. It prioritizes title search for fast document discovery.
 
 ```python
 from outowiki.modules.searcher_agent_loop import SearcherWithAgentLoop
@@ -280,6 +321,16 @@ from outowiki.modules.searcher_agent_loop import SearcherWithAgentLoop
 searcher = SearcherWithAgentLoop(wiki_store, agent_loop)
 results = searcher.search("query")
 ```
+
+**Workflow:**
+1. Use `search_titles` FIRST (FASTEST way to find documents)
+2. If title search insufficient, explore categories with `list_folder`
+3. Use `read_document` to verify relevance if needed
+
+**Key Features:**
+- **Title Search Priority**: Starts with fast title search before folder exploration
+- **Multi-Topic Search**: Queries with multiple topics are split and searched separately
+- **LLM-Based Relevance**: LLM reads documents and selects most relevant ones
 
 ## Key Design Principles
 

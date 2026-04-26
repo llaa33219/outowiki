@@ -21,10 +21,13 @@ OutoWiki follows Wikipedia/NamuWiki classification principles:
 - **Dynamic Category Creation** - Create new categories as needed
 - **Category Tree Exploration** - Navigate and explore category hierarchy
 - **Required Title Validation** - title is REQUIRED for all documents, auto-retry if missing
+- **Title-Filename Consistency** - Document title must match filename (Wikipedia-style naming)
+- **Fast Title Search** - `search_titles` tool for quick document discovery by title
+- **Search-Before-Create** - Always search for existing documents before creating new ones
 - **LLM-Based Processing** - Keyword extraction, category matching, topic splitting all use LLM
 - **Full Document Delivery** - Entire document content delivered to LLM (no 500-character limit)
 - **Section-Based Editing** - Wikipedia-style section editing (append, prepend, replace)
-- **Multi-Topic Splitting** - Split content with multiple topics using LLM
+- **Multi-Topic Support** - Process multiple topics separately, create one document per topic
 - **Wikilink Support** - Direct document connection via `[[Document Name]]` syntax
 
 ### Architecture
@@ -50,8 +53,8 @@ OutoWiki follows Wikipedia/NamuWiki classification principles:
 
 The system has three main components:
 
-- **Recorder**: Processes new content using Wiki-style topic classification (is-a relationship), determines document placement, manages backlinks
-- **Searcher**: Finds relevant documents using semantic search and intent analysis
+- **Recorder**: Processes new content using Wiki-style topic classification (is-a relationship), determines document placement, manages backlinks. Uses search-before-create workflow with `search_titles` for fast document discovery.
+- **Searcher**: Finds relevant documents using title search and LLM-based relevance analysis. Supports multi-topic queries.
 - **AgentLoop**: Unified LLM agent with tool-calling and conversation history, manages multi-turn tool chaining
 
 ### AgentLoop Architecture
@@ -82,9 +85,8 @@ OutoWiki uses a unified agent loop for LLM operations:
 ```python
 result = agent_loop.run(
     user_message="Record this content to the wiki...",
-    terminal_tools={"write_document"}
 )
-# LLM automatically: analyze → plan → generate_document → write_document
+# LLM automatically: search_titles → read_document → generate_document → write_document
 ```
 
 ### Wiki Structure

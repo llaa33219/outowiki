@@ -7,8 +7,14 @@ Raw Content
     │
     ▼
 ┌─────────────────┐
-│   Analysis      │  LLM analyzes content, determines topic
-│                 │  (is-a relationship), finds category
+│ Wikilink Check  │  Check for [[Document Name]] patterns
+│                 │  If found, read that document first
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│ Title Search    │  FAST - Search document titles by keyword
+│                 │  Find existing documents quickly
 └────────┬────────┘
          │
          ▼
@@ -32,6 +38,27 @@ Raw Content
          ▼
     RecordResult
 ```
+
+## Search-Before-Create Workflow
+
+**CRITICAL**: Always search for existing documents BEFORE creating new ones.
+
+```python
+# 1. Check wikilinks first
+# If content has [[React Native Camera]], read that document first
+
+# 2. Use search_titles (FASTEST)
+# Search for keywords from the content
+# This quickly finds documents with matching titles
+
+# 3. Only create new if no existing document covers this topic
+```
+
+### Why Search-Before-Create?
+
+- **Prevents duplicates**: Avoids creating multiple documents on the same topic
+- **Maintains consistency**: Updates existing documents instead of fragmenting knowledge
+- **Faster**: Title search is much faster than full-text search
 
 ## Wiki-Style Document Classification
 
@@ -171,55 +198,61 @@ plan = ModifyPlan(
 )
 ```
 
-## Multi-Topic Splitting
+## Multi-Topic Content Handling
 
-When input contains multiple topics, each is processed independently using LLM:
+When content contains multiple topics, each topic is processed separately and gets its own document.
+
+### Example: Multiple Topics in One Input
 
 ```python
-# Input with mixed topics (extreme example)
 content = """
-Linux Mint는 클레멘트 르페브르가 개발한 우분투 기반 운영체제이다.
-알루미늄은 원자번호 13번인 금속 원소로 공기 중의 산소와 반응하여 산화 알루미늄 피막을 형성한다.
-OpenBSD는 테오 드 라트가 넷BSD에서 포크한 운영체제로 "기본적으로 안전"이라는 철학을 가지고 있다.
+Python decorators are useful for metaprogramming.
+React hooks are powerful for state management.
 """
 
-# LLM identifies 3 distinct topics:
-# 1. "Linux Mint" → programming/operating_systems/linux_mint
-# 2. "알루미늄(Aluminum)" → science/chemistry/aluminum
-# 3. "OpenBSD" → programming/operating_systems/openbsd
+# LLM identifies 2 topics:
+# 1. "Python decorators" → programming/python/decorators.md
+# 2. "React hooks" → programming/javascript/react/hooks.md
+
+# Each topic gets its OWN document - NEVER combine them
 ```
 
-### LLM-Based Topic Splitting
+### Critical Rules for Multi-Topic Content
 
-OutoWiki uses LLM to identify distinct topics in mixed content:
+1. **NEVER put multiple topics in one document**
+   - Each topic gets its OWN document
+   - Example: "Python decorators" → `programming/python/decorators.md`
+   - Example: "React hooks" → `programming/javascript/react/hooks.md`
 
-```python
-def _split_topics(self, content: str) -> List[str]:
-    # 1. Ask LLM to identify distinct topics
-    # 2. LLM returns separated content blocks
-    # 3. Each block processed independently
-```
+2. **ALWAYS create specific, focused documents**
+   - Document should be about ONE specific topic
+   - Use descriptive filenames: `decorators.md`, `hooks.md`, `camera_setup.md`
+   - Do NOT use generic names like `notes.md`, `info.md`, `content.md`
 
-### Splitting Algorithm
-
-```python
-def _split_topics(content: str) -> List[str]:
-    # 1. Split by headers (## 제목)
-    # 2. Split by [제목] patterns
-    # 3. Split by topic transition keywords
-    # 4. Return list of topic blocks
-```
+3. **Search for existing documents for EACH topic**
+   - Use `search_titles` for each topic separately
+   - If document exists, MODIFY it (append new content)
+   - If no document exists, CREATE new one
 
 ## Step-by-Step Recording
 
-### Step 1: Topic Classification
+### Step 1: Search-Before-Create Workflow
 
 ```python
 from outowiki.modules import Recorder
 
 recorder = Recorder(wiki.wiki_path, wiki.provider)
-topic = recorder._classify_topic("User prefers dark mode")
-print(topic)  # "preferences/ui"
+
+# 1. Check for wikilinks first
+wikilinks = recorder._parse_wikilinks("See [[React Native Camera]] for details")
+print(wikilinks)  # ["React Native Camera"]
+
+# 2. Use search_titles (FASTEST way to find documents)
+# This searches document titles by keyword
+# Returns matching titles with their paths and categories
+
+# 3. If document found, read and modify it
+# If no document found, create new one
 ```
 
 ### Step 2: Title Requirement
@@ -244,37 +277,42 @@ plan = CreatePlan(
 )
 ```
 
-### Step 3: Keyword Extraction (LLM-Based)
+### Title-Filename Consistency Rules
 
-Keywords are extracted using LLM, not hardcoded lists:
+**Document title MUST match filename.** This ensures consistency between file system and display.
 
-```python
-def _extract_keywords(self, content: str) -> List[str]:
-    # Ask LLM to extract key topics and keywords
-    # Returns list of relevant keywords
-    # No hardcoded term lists or stop words
+```
+Title: "Python Classes" → Filename: python_classes.md
+Title: "React Native Camera" → Filename: react_native_camera.md
+Title: "Aluminum" → Filename: aluminum.md
 ```
 
-### Step 4: Category Matching (LLM-Based)
+**Rules for converting title to filename:**
+- Convert to lowercase
+- Replace spaces with underscores
+- Remove special characters (apostrophes, etc.)
+- Keep it concise but descriptive
 
-Category matching uses LLM to determine relevance:
+| Title | Good Filename | Bad Filename |
+|-------|---------------|--------------|
+| Python Classes | `python_classes.md` | `classes.md` (missing context) |
+| React Native Camera | `react_native_camera.md` | `camera.md` (too generic) |
+| Decorators in Python | `decorators_in_python.md` | `python_decorators.md` (mismatch) |
+| Aluminum Properties | `aluminum_properties.md` | `properties.md` (too generic) |
+
+### Step 3: Find Existing Document
 
 ```python
-def _category_matches(self, category: str, keywords: List[str]) -> bool:
-    # Ask LLM if category matches keywords
-    # Returns boolean indicating relevance
-    # No string matching or hardcoded logic
+# Use search_titles (FASTEST way to find documents)
+# This searches document titles by keyword
+# Returns matching titles with their paths and categories
+
+# If document found, read and verify content
+# If similar content exists, MODIFY it
+# If no similar content, CREATE new document
 ```
 
-### Step 5: Find Existing Document
-
-```python
-# Find document in category
-doc_path = recorder._find_document_in_category("preferences/ui", content)
-print(doc_path)  # "preferences/ui/theme.md" or None
-```
-
-### Step 3: Record with Metadata
+### Step 4: Record with Metadata
 
 ```python
 result = wiki.record(
