@@ -26,26 +26,28 @@ CRITICAL REQUIREMENTS:
 - metadata.title is REQUIRED for ALL actions - you MUST provide a descriptive title
 - Title should be human-readable (e.g., "React Native Camera Setup" not "react_native_camera")
 - Title is used as the document's display name
-- Title MUST MATCH the filename (without .md extension)
+- Title MUST follow Wikipedia naming conventions (recognizable, precise, natural, concise, consistent)
 - plans MUST be an array of plan objects, NOT a JSON string
 
-TITLE RULES:
-- Title is what users SEE when browsing the wiki
-- Title should be INTUITIVE and HUMAN-READABLE
-- Title should summarize the document's content clearly
-- Title MUST MATCH the filename (without .md extension)
+TITLE RULES (Wikipedia naming conventions):
+- Title should be RECOGNIZABLE - readers should understand what the document is about
+- Title should be PRECISE - unambiguously identify the subject
+- Title should be NATURAL - what people would naturally call it
+- Title should be CONCISE - not longer than necessary
+- Title should be CONSISTENT - follow similar patterns for similar topics
 
+IMPORTANT: Include CONTEXT in the title when needed
 GOOD title examples:
-- Path: "programming/python/decorators" → Title: "decorators"
-- Path: "science/chemistry/elements/aluminum" → Title: "aluminum"
-- Path: "users/alice/preferences" → Title: "preferences"
-- Path: "tools/camera/react_native" → Title: "react_native"
+- Path: "programming/python/classes" → Title: "Python Classes"
+- Path: "science/chemistry/elements/aluminum" → Title: "Aluminum"
+- Path: "users/alice/preferences" → Title: "Alice's Preferences"
+- Path: "tools/camera/react_native" → Title: "React Native Camera"
 
 BAD titles (DO NOT USE):
-- "Python Decorators Guide" (doesn't match filename "decorators")
-- "Aluminum: Properties and Uses" (doesn't match filename "aluminum")
-- "Alice's Preferences" (doesn't match filename "preferences")
-- "React Native Camera Setup" (doesn't match filename "react_native")
+- "Classes" (too generic - which classes? Python? Java? Biology?)
+- "Decorators" (too generic - Python decorators? Interior decorators?)
+- "Preferences" (too generic - whose preferences?)
+- "Camera" (too generic - which camera? Phone camera? DSLR?)
 
 CREATE PLAN - REQUIRED FIELDS:
 When creating a new document, you MUST provide ALL of these fields:

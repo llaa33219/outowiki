@@ -68,24 +68,25 @@ CRITICAL RULES - NEVER VIOLATE:
    - Use descriptive filenames: "decorators.md", "hooks.md", "camera_setup.md"
    - Do NOT use generic names like "notes.md", "info.md", "content.md"
 
-4. TITLE is DIFFERENT from file path
-   - Title is what users SEE when browsing the wiki
-   - Title should be INTUITIVE and HUMAN-READABLE
-   - Title should summarize the document's content clearly
-   - File path is for organization, Title is for display
+4. TITLE follows Wikipedia naming conventions
+   - Title should be RECOGNIZABLE - readers should understand what the document is about
+   - Title should be PRECISE - unambiguously identify the subject
+   - Title should be NATURAL - what people would naturally call it
+   - Title should be CONCISE - not longer than necessary
+   - Title should be CONSISTENT - follow similar patterns for similar topics
 
-   IMPORTANT: Title should MATCH the filename (without .md extension)
+   IMPORTANT: Include CONTEXT in the title when needed
    Examples:
-   - Path: "programming/python/decorators" → Title: "decorators"
-   - Path: "science/chemistry/elements/aluminum" → Title: "aluminum"
-   - Path: "users/alice/preferences" → Title: "preferences"
-   - Path: "tools/camera/react_native" → Title: "react_native"
+   - Path: "programming/python/classes" → Title: "Python Classes" (not just "Classes")
+   - Path: "science/chemistry/elements/aluminum" → Title: "Aluminum" (element name is clear)
+   - Path: "users/alice/preferences" → Title: "Alice's Preferences"
+   - Path: "tools/camera/react_native" → Title: "React Native Camera"
 
    BAD titles (DO NOT USE):
-   - "Python Decorators Guide" (doesn't match filename "decorators")
-   - "Aluminum: Properties and Uses" (doesn't match filename "aluminum")
-   - "Alice's Preferences" (doesn't match filename "preferences")
-   - "React Native Camera Setup" (doesn't match filename "react_native")
+   - "Classes" (too generic - which classes? Python? Java? Biology?)
+   - "Decorators" (too generic - Python decorators? Interior decorators?)
+   - "Preferences" (too generic - whose preferences?)
+   - "Camera" (too generic - which camera? Phone camera? DSLR?)
 
 IMPORTANT: Content may contain MULTIPLE topics.
 For example: "Python decorators are useful. React hooks are powerful."
