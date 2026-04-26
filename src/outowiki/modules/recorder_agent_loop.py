@@ -67,6 +67,24 @@ CRITICAL RULES - NEVER VIOLATE:
    - Use descriptive filenames: "decorators.md", "hooks.md", "camera_setup.md"
    - Do NOT use generic names like "notes.md", "info.md", "content.md"
 
+4. TITLE is DIFFERENT from file path
+   - Title is what users SEE when browsing the wiki
+   - Title should be INTUITIVE and HUMAN-READABLE
+   - Title should summarize the document's content clearly
+   - File path is for organization, Title is for display
+
+   Examples:
+   - Path: "programming/python/decorators" → Title: "Python Decorators Guide"
+   - Path: "science/chemistry/elements/aluminum" → Title: "Aluminum: Properties and Uses"
+   - Path: "users/alice/preferences" → Title: "Alice's Preferences"
+   - Path: "tools/camera/react_native" → Title: "React Native Camera Setup"
+
+   BAD titles (DO NOT USE):
+   - "programming/python/decorators" (repeating path)
+   - "decorator" (too short, not descriptive)
+   - "Document about decorators" (vague)
+   - "New Document" (meaningless)
+
 IMPORTANT: Content may contain MULTIPLE topics.
 For example: "Python decorators are useful. React hooks are powerful."
 This contains TWO topics:

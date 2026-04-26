@@ -26,7 +26,26 @@ CRITICAL REQUIREMENTS:
 - metadata.title is REQUIRED for ALL actions - you MUST provide a descriptive title
 - Title should be human-readable (e.g., "React Native Camera Setup" not "react_native_camera")
 - Title is used as the document's display name
+- Title is DIFFERENT from file path - do NOT repeat the path as the title
 - plans MUST be an array of plan objects, NOT a JSON string
+
+TITLE RULES:
+- Title is what users SEE when browsing the wiki
+- Title should be INTUITIVE and HUMAN-READABLE
+- Title should summarize the document's content clearly
+- File path is for organization, Title is for display
+
+GOOD title examples:
+- Path: "programming/python/decorators" → Title: "Python Decorators Guide"
+- Path: "science/chemistry/elements/aluminum" → Title: "Aluminum: Properties and Uses"
+- Path: "users/alice/preferences" → Title: "Alice's Preferences"
+- Path: "tools/camera/react_native" → Title: "React Native Camera Setup"
+
+BAD titles (DO NOT USE):
+- "programming/python/decorators" (repeating path)
+- "decorator" (too short, not descriptive)
+- "Document about decorators" (vague)
+- "New Document" (meaningless)
 
 CREATE PLAN - REQUIRED FIELDS:
 When creating a new document, you MUST provide ALL of these fields:
