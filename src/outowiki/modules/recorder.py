@@ -23,7 +23,7 @@ class TopicSplitResult(BaseModel):
     topics: List[str] = []
 
 class CategoryResult(BaseModel):
-    category: str = ""
+    category: str
 
 class KeywordResult(BaseModel):
     keywords: List[str] = []
@@ -181,15 +181,17 @@ Available category tree:
 Determine the SINGLE most specific category this content belongs to.
 If no existing category fits well, suggest a NEW category path (e.g., "programming/python/web").
 
-Return the category path (e.g., "programming/python/web")."""
+Return the category path (e.g., "programming/python/web").
+IMPORTANT: You MUST return a category. Do not return empty or null."""
         
-        try:
-            result: Any = self.agent._call_with_schema(prompt, CategoryResult)
-            if hasattr(result, 'category') and result.category:
-                self._create_category_if_needed(result.category)
-                return str(result.category)
-        except Exception as e:
-            self.logger.debug(f"Topic classification failed: {e}")
+        for attempt in range(3):
+            try:
+                result: Any = self.agent._call_with_schema(prompt, CategoryResult)
+                if hasattr(result, 'category') and result.category:
+                    self._create_category_if_needed(result.category)
+                    return str(result.category)
+            except Exception as e:
+                self.logger.debug(f"Topic classification attempt {attempt + 1} failed: {e}")
         
         return None
 
@@ -198,7 +200,10 @@ Return the category path (e.g., "programming/python/web")."""
             folder_content = self.wiki.list_folder(category)
             if folder_content['files']:
                 self.logger.debug(f"Found documents in category {category}: {folder_content['files']}")
-                return f"{category}/{folder_content['files'][0]}"
+                for file in folder_content['files']:
+                    doc_path = f"{category}/{file}"
+                    if self._is_document_relevant(doc_path, content):
+                        return doc_path
         except WikiStoreError:
             pass
         
@@ -208,7 +213,10 @@ Return the category path (e.g., "programming/python/web")."""
                 folder_content = self.wiki.list_folder(subcat)
                 if folder_content['files']:
                     self.logger.debug(f"Found documents in subcategory {subcat}: {folder_content['files']}")
-                    return f"{subcat}/{folder_content['files'][0]}"
+                    for file in folder_content['files']:
+                        doc_path = f"{subcat}/{file}"
+                        if self._is_document_relevant(doc_path, content):
+                            return doc_path
             except WikiStoreError:
                 continue
         
@@ -358,16 +366,27 @@ Return the category path (e.g., "programming/python/web")."""
             target_path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
             self.logger.debug(f"Auto-corrected filename to match title: {target_path}")
 
+        if not category and '/' in target_path:
+            category = '/'.join(target_path.split('/')[:-1])
+            self.logger.debug(f"Extracted category from path: {category}")
+        elif not category:
+            category = self._classify_topic(plan.content)
+            if category:
+                target_path = f"{category}/{target_path}"
+                self.logger.debug(f"Assigned category from content: {category}")
+            else:
+                category = "general"
+                target_path = f"{category}/{target_path}"
+                self.logger.debug(f"Using default category: {category}")
+
         if category and '/' not in target_path:
             target_path = f"{category}/{target_path}"
             self.logger.debug(f"Using category as path prefix: {target_path}")
-        elif not category:
-            self.logger.debug(f"No category specified, using target_path as-is: {target_path}")
 
         generated_content = self.agent.generate_document(
             content=plan.content,
             title=plan.title,
-            category=category or "",
+            category=category,
             tags=plan.metadata.tags,
             related=plan.metadata.related
         )
@@ -566,10 +585,10 @@ Return the category path (e.g., "programming/python/web")."""
         wikilinks = self._parse_wikilinks(content)
         for link in wikilinks:
             normalized = link.replace(' ', '_').lower()
-            if self.wiki.document_exists(normalized):
+            if self.wiki.document_exists(normalized) and self._is_document_relevant(normalized, content):
                 self.logger.debug(f"Found via wikilink: {normalized}")
                 return normalized
-            if self.wiki.document_exists(link):
+            if self.wiki.document_exists(link) and self._is_document_relevant(link, content):
                 self.logger.debug(f"Found via wikilink: {link}")
                 return link
 
@@ -615,6 +634,28 @@ Example: {{"matches": true}}"""
                 return bool(result.matches)
         except Exception as e:
             self.logger.debug(f"Category matching failed: {e}")
+        
+        return False
+
+    def _is_document_relevant(self, doc_path: str, content: str) -> bool:
+        try:
+            doc = self.wiki.read_document(doc_path)
+            prompt = f"""Determine if this document is relevant to the given content.
+
+Document Title: {doc.title}
+Document Content: {doc.content[:500]}
+
+Content to compare:
+{content[:500]}
+
+Return a JSON object with a "matches" boolean indicating if the document is relevant to the content.
+Example: {{"matches": true}}"""
+            
+            result: Any = self.agent._call_with_schema(prompt, MatchResult)
+            if hasattr(result, 'matches'):
+                return bool(result.matches)
+        except Exception as e:
+            self.logger.debug(f"Document relevance check failed: {e}")
         
         return False
 
