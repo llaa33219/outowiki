@@ -499,7 +499,19 @@ Return the category path (e.g., "programming/python/web")."""
             target_path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
             _logger.debug(f"Auto-corrected filename to match title: {target_path}")
 
-        # Add category prefix if needed
+        if not category and '/' in target_path:
+            category = '/'.join(target_path.split('/')[:-1])
+            _logger.debug(f"Extracted category from path: {category}")
+        elif not category:
+            category = _classify_topic_internal(input.content)
+            if category:
+                target_path = f"{category}/{target_path}"
+                _logger.debug(f"Assigned category from content: {category}")
+            else:
+                category = "general"
+                target_path = f"{category}/{target_path}"
+                _logger.debug(f"Using default category: {category}")
+
         if category and '/' not in target_path:
             target_path = f"{category}/{target_path}"
             _logger.debug(f"Using category as path prefix: {target_path}")
@@ -606,7 +618,7 @@ Return the category path (e.g., "programming/python/web")."""
             created=datetime.now(),
             modified=datetime.now(),
             tags=[],
-            category='/'.join(input.target_path.split('/')[:-1]) or None,
+            category='/'.join(input.target_path.split('/')[:-1]) or "general",
             related=input.source_paths,
         )
 
@@ -649,7 +661,7 @@ Return the category path (e.g., "programming/python/web")."""
                 created=datetime.now(),
                 modified=datetime.now(),
                 tags=original.tags,
-                category='/'.join(new_path.split('/')[:-1]) or None,
+                category='/'.join(new_path.split('/')[:-1]) or "general",
                 related=[input.target_path],
             )
 

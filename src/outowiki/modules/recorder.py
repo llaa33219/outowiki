@@ -487,7 +487,7 @@ IMPORTANT: You MUST return a category. Do not return empty or null."""
             created=datetime.now(),
             modified=datetime.now(),
             tags=[],
-            category='/'.join(plan.target_path.split('/')[:-1]) or None,
+            category='/'.join(plan.target_path.split('/')[:-1]) or "general",
             related=plan.source_paths
         )
 
@@ -523,7 +523,7 @@ IMPORTANT: You MUST return a category. Do not return empty or null."""
                 created=datetime.now(),
                 modified=datetime.now(),
                 tags=original.tags,
-                category='/'.join(new_path.split('/')[:-1]) or None,
+                category='/'.join(new_path.split('/')[:-1]) or "general",
                 related=[plan.target_path]
             )
 
