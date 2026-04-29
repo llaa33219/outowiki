@@ -22,6 +22,25 @@ def title_to_filename(title: str) -> str:
     return normalized.strip('_')
 
 
+def is_readme_path(path: str) -> bool:
+    """Check if path points to a README.md file."""
+    return PurePosixPath(path).name.lower() in ("readme", "readme.md")
+
+
+def auto_correct_filename(title: str, path: str) -> str:
+    """Auto-correct filename in path to match title. Skips README.md."""
+    if is_readme_path(path):
+        return path
+    path_obj = PurePosixPath(path)
+    filename = path_obj.name
+    if filename.endswith('.md'):
+        filename = filename[:-3]
+    expected = title_to_filename(title)
+    if filename != expected:
+        return str(path_obj.parent / expected) if str(path_obj.parent) != '.' else expected
+    return path
+
+
 def filename_to_title(filename: str) -> str:
     """Convert a filename (without .md) to its expected title.
 
@@ -60,6 +79,9 @@ def validate_tags_english(tags: list[str]) -> tuple[bool, str]:
 def validate_title_filename_consistency(title: str, path: str) -> tuple[bool, str]:
     """Validate that title matches the filename in the path. Returns (is_valid, error_message)."""
     if not title or not path:
+        return True, ""
+
+    if is_readme_path(path):
         return True, ""
 
     path_obj = PurePosixPath(path)
