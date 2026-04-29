@@ -16,7 +16,7 @@ from ..core.store import WikiStore
 from .agent import InternalAgent
 from ..core.exceptions import WikiStoreError
 from ..utils.markdown import extract_sections, parse_frontmatter
-from ..utils.validation import validate_document, title_to_filename
+from ..utils.validation import validate_document, title_to_filename, auto_correct_filename
 
 
 class TopicSplitResult(BaseModel):
@@ -357,14 +357,8 @@ IMPORTANT: You MUST return a category. Do not return empty or null."""
             if any("must be in English" in e for e in errors):
                 raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
 
-        path_obj = PurePosixPath(target_path)
-        path_filename = path_obj.name
-        if path_filename.endswith('.md'):
-            path_filename = path_filename[:-3]
-        expected_filename = title_to_filename(plan.title)
-        if path_filename != expected_filename:
-            target_path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
-            self.logger.debug(f"Auto-corrected filename to match title: {target_path}")
+        target_path = auto_correct_filename(plan.title, target_path)
+        self.logger.debug(f"Auto-corrected path: {target_path}")
 
         if not category and '/' in target_path:
             category = '/'.join(target_path.split('/')[:-1])

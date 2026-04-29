@@ -14,7 +14,7 @@ from ..core.store import WikiStore
 from ..core.exceptions import WikiStoreError
 from ..models.content import WikiDocument
 from ..utils.markdown import extract_sections, parse_frontmatter
-from ..utils.validation import validate_document, title_to_filename
+from ..utils.validation import validate_document, title_to_filename, auto_correct_filename
 from ..providers.base import LLMProvider
 from .agent_loop import AgentLoop
 from .tools import ToolDefinition
@@ -490,14 +490,8 @@ Return the category path (e.g., "programming/python/web")."""
                 raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
 
         # Auto-correct filename to match title
-        path_obj = PurePosixPath(target_path)
-        path_filename = path_obj.name
-        if path_filename.endswith('.md'):
-            path_filename = path_filename[:-3]
-        expected_filename = title_to_filename(input.title)
-        if path_filename != expected_filename:
-            target_path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
-            _logger.debug(f"Auto-corrected filename to match title: {target_path}")
+        target_path = auto_correct_filename(input.title, target_path)
+        _logger.debug(f"Auto-corrected path: {target_path}")
 
         if not category and '/' in target_path:
             category = '/'.join(target_path.split('/')[:-1])

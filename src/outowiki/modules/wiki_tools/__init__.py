@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 from ...core.store import WikiStore
 from ...core.exceptions import WikiStoreError
 from ...models.content import WikiDocument
-from ...utils.validation import validate_document, title_to_filename
+from ...utils.validation import validate_document, title_to_filename, auto_correct_filename
 from ..tools import ToolDefinition
 
 logger = logging.getLogger(__name__)
@@ -101,14 +101,8 @@ def create_wiki_tools(wiki: WikiStore) -> list[ToolDefinition]:
                 raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
 
         path = input.path
-        path_obj = PurePosixPath(path)
-        path_filename = path_obj.name
-        if path_filename.endswith('.md'):
-            path_filename = path_filename[:-3]
-        expected_filename = title_to_filename(input.title)
-        if path_filename != expected_filename:
-            path = str(path_obj.parent / expected_filename) if str(path_obj.parent) != '.' else expected_filename
-            logger.debug(f"Auto-corrected filename to match title: {path}")
+        path = auto_correct_filename(input.title, path)
+        logger.debug(f"Auto-corrected path: {path}")
 
         doc = WikiDocument(
             path=path,
