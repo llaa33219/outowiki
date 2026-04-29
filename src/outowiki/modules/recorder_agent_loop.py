@@ -149,7 +149,6 @@ class ClassifyTopicOutput(BaseModel):
 
 
 class ExecuteCreatePlanInput(BaseModel):
-    target_path: str = Field(description="Target document path (without .md extension)")
     title: str = Field(description="Document title (English only)")
     content: str = Field(description="Document content in markdown")
     category: Optional[str] = Field(default=None, description="Document category")
@@ -479,7 +478,7 @@ Return the category path (e.g., "programming/python/web")."""
 
     def execute_create_plan(input: ExecuteCreatePlanInput) -> ExecuteCreatePlanOutput:
         category = input.category
-        target_path = input.target_path
+        target_path = title_to_filename(input.title)
 
         # Validate document
         is_valid, errors = validate_document(input.title, target_path, input.tags)
@@ -489,14 +488,9 @@ Return the category path (e.g., "programming/python/web")."""
             if any("must be in English" in e for e in errors):
                 raise WikiStoreError(f"Document validation failed: {'; '.join(errors)}")
 
-        # Auto-correct filename to match title
-        target_path = auto_correct_filename(input.title, target_path)
-        _logger.debug(f"Auto-corrected path: {target_path}")
+        _logger.debug(f"Generated path from title: {target_path}")
 
-        if not category and '/' in target_path:
-            category = '/'.join(target_path.split('/')[:-1])
-            _logger.debug(f"Extracted category from path: {category}")
-        elif not category:
+        if not category:
             category = _classify_topic_internal(input.content)
             if category:
                 target_path = f"{category}/{target_path}"
