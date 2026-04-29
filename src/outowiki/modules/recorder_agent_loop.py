@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime
-from pathlib import PurePosixPath
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -14,7 +13,7 @@ from ..core.store import WikiStore
 from ..core.exceptions import WikiStoreError
 from ..models.content import WikiDocument
 from ..utils.markdown import extract_sections, parse_frontmatter
-from ..utils.validation import validate_document, title_to_filename, auto_correct_filename
+from ..utils.validation import validate_document, title_to_filename
 from ..providers.base import LLMProvider
 from .agent_loop import AgentLoop
 from .tools import ToolDefinition

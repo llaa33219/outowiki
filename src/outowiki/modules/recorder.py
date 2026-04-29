@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 import re
 from datetime import datetime
-from pathlib import PurePosixPath
 from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel
@@ -16,7 +15,7 @@ from ..core.store import WikiStore
 from .agent import InternalAgent
 from ..core.exceptions import WikiStoreError
 from ..utils.markdown import extract_sections, parse_frontmatter
-from ..utils.validation import validate_document, title_to_filename, auto_correct_filename
+from ..utils.validation import validate_document, auto_correct_filename
 
 
 class TopicSplitResult(BaseModel):

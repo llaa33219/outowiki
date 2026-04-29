@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from pathlib import PurePosixPath
 
 from pydantic import BaseModel, Field
 
 from ...core.store import WikiStore
 from ...core.exceptions import WikiStoreError
 from ...models.content import WikiDocument
-from ...utils.validation import validate_document, title_to_filename, auto_correct_filename
+from ...utils.validation import validate_document, auto_correct_filename
 from ..tools import ToolDefinition
 
 logger = logging.getLogger(__name__)
