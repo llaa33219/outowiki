@@ -61,10 +61,10 @@ When you encounter multiple topics:
 3. Collect documents for ALL topics
 4. Return ALL relevant documents from ALL topics
 
-When you have found all relevant documents, respond with a JSON object:
+When you have found all relevant documents, respond with ONLY a JSON object (no other text):
 {"paths": ["path/to/doc1.md", "path/to/doc2.md", ...]}
 
-Always use the tools to explore the wiki. Do not guess document paths - verify them first."""
+Do NOT include explanations, descriptions, or any text before or after the JSON. Return ONLY the JSON object."""
 
 
 class SearchSpecificInput(BaseModel):
@@ -333,7 +333,15 @@ When you have found all relevant documents, respond with: {{"paths": ["path1", "
             try:
                 output = json.loads(output)
             except json.JSONDecodeError:
-                return [output] if output else []
+                import re
+                json_match = re.search(r'\{[^{}]*"paths"\s*:\s*\[[^\]]*\][^{}]*\}', output)
+                if json_match:
+                    try:
+                        output = json.loads(json_match.group())
+                    except json.JSONDecodeError:
+                        return []
+                else:
+                    return []
 
         if isinstance(output, dict):
             if "paths" in output:
