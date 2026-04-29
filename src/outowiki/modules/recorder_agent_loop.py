@@ -71,14 +71,10 @@ CRITICAL RULES - NEVER VIOLATE:
    - Document should be about ONE specific topic
    - Use descriptive filenames
 
-4. TITLE and FILENAME must be CONSISTENT
-   - File name (without .md) should be derived from the title
-   - Rules: lowercase, spaces→underscores, remove special chars
-
-5. Title and tags MUST be in English ONLY
+4. Title and tags MUST be in English ONLY
    - Content can be in any language, but title and tags must be English
 
-6. ALWAYS use execute_*_plan tools for document operations
+5. ALWAYS use execute_*_plan tools for document operations
    - They handle validation, frontmatter stripping, and version tracking
    - Do NOT use raw write_document for recording operations
 
@@ -699,7 +695,7 @@ Return the category path (e.g., "programming/python/web")."""
         ),
         ToolDefinition(
             name="execute_create_plan",
-            description="Create a new document with validation, frontmatter stripping, and version tracking.",
+            description="Create a new document. Filename is auto-generated from title. Category is auto-detected if not provided.",
             input_model=ExecuteCreatePlanInput,
             handler=execute_create_plan,
         ),
