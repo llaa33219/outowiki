@@ -61,10 +61,9 @@ When you encounter multiple topics:
 3. Collect documents for ALL topics
 4. Return ALL relevant documents from ALL topics
 
-When you have found all relevant documents, respond with ONLY a JSON object (no other text):
-{"paths": ["path/to/doc1.md", "path/to/doc2.md", ...]}
-
-Do NOT include explanations, descriptions, or any text before or after the JSON. Return ONLY the JSON object."""
+CRITICAL: You MUST use the return_search_results tool to return your findings.
+Do NOT respond with text - use the tool to return the paths array.
+If you respond without using return_search_results, the results will be LOST."""
 
 
 class SearchSpecificInput(BaseModel):
@@ -95,6 +94,14 @@ class ExpandBacklinksInput(BaseModel):
 
 class ExpandBacklinksOutput(BaseModel):
     expanded_paths: List[str] = Field(default_factory=list, description="Documents that link to given paths")
+
+
+class ReturnSearchResultsInput(BaseModel):
+    paths: List[str] = Field(description="List of relevant document paths found")
+
+
+class ReturnSearchResultsOutput(BaseModel):
+    paths: List[str] = Field(description="Confirmed search results")
 
 
 def create_search_tools(
@@ -195,6 +202,9 @@ def create_search_tools(
 
         return ExpandBacklinksOutput(expanded_paths=expanded)
 
+    def return_search_results(input: ReturnSearchResultsInput) -> ReturnSearchResultsOutput:
+        return ReturnSearchResultsOutput(paths=input.paths)
+
     return [
         ToolDefinition(
             name="search_specific",
@@ -213,6 +223,12 @@ def create_search_tools(
             description="Find documents that link to the given paths via backlinks.",
             input_model=ExpandBacklinksInput,
             handler=expand_backlinks,
+        ),
+        ToolDefinition(
+            name="return_search_results",
+            description="Return the final search results. MUST be called when search is complete.",
+            input_model=ReturnSearchResultsInput,
+            handler=return_search_results,
         ),
     ]
 
@@ -256,10 +272,10 @@ Max results: {search_query.max_results}{category_hint}
 IMPORTANT: This query may contain MULTIPLE topics. Search for EACH topic separately and collect documents for ALL topics.
 
 Explore the wiki structure, read documents to check relevance, and return the paths of the most relevant documents.
-When you have found all relevant documents, respond with: {{"paths": ["path1", "path2", ...]}}"""
+When you have found all relevant documents, use the return_search_results tool to return the paths."""
 
         self.agent_loop.reset()
-        result = self.agent_loop.run(user_message=user_message)
+        result = self.agent_loop.run(user_message=user_message, terminal_tools={"return_search_results"})
 
         if result.truncated:
             self.logger.warning(f"Agent loop truncated after {result.steps} steps")
@@ -329,20 +345,6 @@ When you have found all relevant documents, respond with: {{"paths": ["path1", "
         return None
 
     def _extract_paths_from_result(self, output: Any) -> List[str]:
-        if isinstance(output, str):
-            try:
-                output = json.loads(output)
-            except json.JSONDecodeError:
-                import re
-                json_match = re.search(r'\{[^{}]*"paths"\s*:\s*\[[^\]]*\][^{}]*\}', output)
-                if json_match:
-                    try:
-                        output = json.loads(json_match.group())
-                    except json.JSONDecodeError:
-                        return []
-                else:
-                    return []
-
         if isinstance(output, dict):
             if "paths" in output:
                 paths = output["paths"]
