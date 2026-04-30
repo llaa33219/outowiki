@@ -122,9 +122,17 @@ Python is a programming language.
                 finish_reason="tool_calls",
             )
         return ProviderResponse(
-            content='{"paths": ["knowledge/python"]}',
-            tool_calls=None,
-            finish_reason="stop",
+            content=None,
+            tool_calls=[
+                ToolCall(
+                    id="call_2",
+                    name="return_search_results",
+                    arguments=json.dumps({
+                        "paths": ["knowledge/python"],
+                    }),
+                )
+            ],
+            finish_reason="tool_calls",
         )
 
     mock_provider.chat_with_tools.side_effect = mock_chat
