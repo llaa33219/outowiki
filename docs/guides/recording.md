@@ -134,6 +134,30 @@ For DELETE: execute_delete_plan
 | `execute_split_plan` | Split document into sub-documents |
 | `execute_delete_plan` | Delete document with version tracking |
 
+### execute_create_plan Details
+
+The `execute_create_plan` tool uses a **title-only API**:
+
+```python
+# Input fields:
+class ExecuteCreatePlanInput(BaseModel):
+    title: str           # Document title (English only)
+    content: str         # Document content in markdown
+    category: Optional[str]  # Document category (auto-detected if None)
+    tags: List[str]      # Document tags (English only)
+    related: List[str]   # Related document paths
+
+# The file path is AUTO-GENERATED from the title:
+# Title: "Python Classes" → Path: "python_classes.md"
+# Title: "React Native Camera" → Path: "react_native_camera.md"
+```
+
+**Null Category Handling:**
+If `category` is None or empty:
+1. System calls `classify_topic` to auto-detect category from content
+2. If classification succeeds, uses detected category
+3. If classification fails, falls back to `"general"` category
+
 ## Critical Rules
 
 ### 1. Search-Before-Create
@@ -151,6 +175,19 @@ For DELETE: execute_delete_plan
 ```
 Title: "Python Classes" → Filename: python_classes.md
 Title: "React Native Camera" → Filename: react_native_camera.md
+```
+
+**Validation Rules:**
+- Title must be English (ASCII letters, digits, common punctuation)
+- Tags must be English
+- Filename must match title (case-insensitive)
+- **Exception**: README.md files are skipped from title-filename validation
+
+**Auto-Correction:**
+If title and filename don't match, the system automatically corrects the filename:
+```python
+# Input: title="Python Classes", path="wrong_name.md"
+# Output: path="python_classes.md" (auto-corrected)
 ```
 
 ### 5. English Titles and Tags

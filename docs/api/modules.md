@@ -44,7 +44,7 @@ agent_loop = AgentLoop(
     provider=provider,
     tools=all_tools,
     system_prompt="You are a wiki assistant...",
-    max_iterations=20,
+    max_iterations=80,
     logger=logger
 )
 ```
@@ -52,7 +52,7 @@ agent_loop = AgentLoop(
 **Key Features:**
 - **Conversation History**: LLM sees previous tool results
 - **Tool Chaining**: LLM automatically chains tool calls
-- **Max Iterations**: Prevents infinite loops (default: 20)
+- **Max Iterations**: Prevents infinite loops (default: 80)
 - **Terminal Tools**: Specific tools that signal completion
 
 **Methods:**
@@ -167,7 +167,7 @@ Tools for document recording operations.
 | `split_topics` | content | topics[], is_single_topic | Split content into topics (LLM) |
 | `find_existing_document` | content, wikilinks | found_paths[], existing_contents{} | Find existing docs |
 | `classify_topic` | content | category, is_new_category | Determine category (LLM) |
-| `execute_create_plan` | target_path, title, content, category, tags, related | path, success, action | Create document |
+| `execute_create_plan` | title, content, category, tags, related | path, success, action | Create document (path auto-generated from title) |
 | `execute_modify_plan` | target_path, modifications[] | path, success, action | Modify document |
 | `execute_merge_plan` | target_path, source_paths[], merged_content, redirect_sources | path, success, action | Merge documents |
 | `execute_split_plan` | target_path, sections_to_split[], summary_for_main | path, success, action | Split document |
@@ -182,6 +182,7 @@ Tools for search operations.
 | `search_specific` | query, start_folder | paths[] | Exact path matching |
 | `search_folder_with_scoring` | folder, query, specificity_level | paths[] | Relevance-scored search |
 | `expand_backlinks` | paths[] | expanded_paths[] | Find backlinks |
+| `return_search_results` | paths[] | paths[] | **Terminal tool** - Signals search completion and returns final results |
 
 ## Tool Details
 

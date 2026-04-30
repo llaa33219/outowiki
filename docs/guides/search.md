@@ -109,6 +109,27 @@ LLM calls expand_backlinks tool:
 | `search_specific` | Find documents by exact path matching |
 | `search_folder_with_scoring` | Search folder with relevance scoring |
 | `expand_backlinks` | Find documents that link to given paths |
+| `return_search_results` | **Terminal tool** - Signals search completion and returns final results |
+
+### Terminal Tool Pattern
+
+The searcher uses a **terminal tool** pattern for structured result return:
+
+```python
+# The LLM MUST call return_search_results to complete the search
+# This is enforced in the system prompt:
+# "You MUST use the return_search_results tool to return your findings. Do NOT respond with text."
+
+# When return_search_results is called:
+# 1. AgentLoop immediately returns the result (no further iterations)
+# 2. Output is parsed as {"paths": [...]}
+# 3. Paths are normalized to include .md extension
+```
+
+**Why terminal tools?**
+- **Structured output**: Guarantees consistent result format
+- **Early termination**: AgentLoop stops immediately when called
+- **No free-form text**: Prevents LLM from returning unstructured responses
 
 ## Search Modes
 
