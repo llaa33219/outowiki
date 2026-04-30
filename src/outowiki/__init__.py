@@ -40,7 +40,7 @@ from .modules.agent import InternalAgent
 from .modules.agent_loop import AgentLoop
 from .providers.base import LLMProvider
 
-__version__ = "0.7.4"
+__version__ = "0.7.5"
 
 
 def __getattr__(name: str) -> type:
