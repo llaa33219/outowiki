@@ -63,7 +63,10 @@ When you encounter multiple topics:
 
 CRITICAL: You MUST use the return_search_results tool to return your findings.
 Do NOT respond with text - use the tool to return the paths array.
-If you respond without using return_search_results, the results will be LOST."""
+If you respond without using return_search_results, the results will be LOST.
+
+IMPORTANT: All paths MUST include the .md extension.
+Example: ["path/to/document.md", "another/document.md"]"""
 
 
 class SearchSpecificInput(BaseModel):
@@ -353,11 +356,11 @@ When you have found all relevant documents, use the return_search_results tool t
             if "paths" in output:
                 paths = output["paths"]
                 if isinstance(paths, list):
-                    return [p for p in paths if isinstance(p, str)]
+                    return [p if p.endswith('.md') else f"{p}.md" for p in paths if isinstance(p, str)]
             if "path" in output:
                 path = output["path"]
                 if isinstance(path, str):
-                    return [path]
+                    return [path if path.endswith('.md') else f"{path}.md"]
         if isinstance(output, list):
-            return [p for p in output if isinstance(p, str)]
+            return [p if p.endswith('.md') else f"{p}.md" for p in output if isinstance(p, str)]
         return []
