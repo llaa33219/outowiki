@@ -144,11 +144,15 @@ Respond with JSON matching IntentAnalysis schema."""
 
         if start_folder:
             test_path = f"{start_folder}/{query_normalized}"
+            if not test_path.endswith('.md'):
+                test_path = test_path + '.md'
             if self.wiki.document_exists(test_path):
                 paths.append(test_path)
                 self.logger.debug(f"Found in folder: {test_path}")
 
         if self.wiki.document_exists(query_normalized):
+            if not query_normalized.endswith('.md'):
+                query_normalized = query_normalized + '.md'
             paths.append(query_normalized)
             self.logger.debug(f"Found normalized: {query_normalized}")
 
@@ -170,7 +174,7 @@ Respond with JSON matching IntentAnalysis schema."""
             self.logger.debug(f"Folder contains {len(content['files'])} files, {len(content['folders'])} subfolders")
 
             for filename in content['files']:
-                doc_path = f"{folder}/{filename}" if folder else filename
+                doc_path = f"{folder}/{filename}.md" if folder else f"{filename}.md"
 
                 try:
                     doc = self.wiki.read_document(doc_path)

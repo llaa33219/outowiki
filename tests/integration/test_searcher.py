@@ -97,7 +97,7 @@ class TestSearchSpecific:
             "query": "my document",
             "start_folder": "",
         })
-        assert "my_document" in result["paths"]
+        assert "my_document.md" in result["paths"]
 
     def test_finds_in_start_folder(self, searcher, wiki_store):
         wiki_store.create_folder("knowledge")
@@ -107,7 +107,7 @@ class TestSearchSpecific:
             "query": "python",
             "start_folder": "knowledge",
         })
-        assert "knowledge/python" in result["paths"]
+        assert "knowledge/python.md" in result["paths"]
 
     def test_returns_empty_for_missing(self, searcher, wiki_store):
         registry = searcher.agent_loop.registry
@@ -124,7 +124,7 @@ class TestSearchSpecific:
             "query": "readme",
             "start_folder": "",
         })
-        assert "readme" in result["paths"]
+        assert "readme.md" in result["paths"]
 
 
 class TestSearchFolderWithScoring:
@@ -136,7 +136,7 @@ class TestSearchFolderWithScoring:
             "query": "python",
             "specificity_level": "specific",
         })
-        assert "python_guide" in result["paths"]
+        assert "python_guide.md" in result["paths"]
 
     def test_skips_low_relevance(self, searcher, wiki_store):
         _write_doc(wiki_store, "unrelated_doc", "Unrelated", "Nothing relevant here")
@@ -171,7 +171,7 @@ class TestSearchFolderWithScoring:
             "query": "python",
             "specificity_level": "general",
         })
-        assert "knowledge/programming/guide" in result["paths"]
+        assert "knowledge/programming/guide.md" in result["paths"]
 
     def test_does_not_recurse_for_specific(self, searcher, wiki_store):
         wiki_store.create_folder("knowledge/programming")
