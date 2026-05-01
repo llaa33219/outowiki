@@ -44,7 +44,7 @@ agent_loop = AgentLoop(
     provider=provider,
     tools=all_tools,
     system_prompt="You are a wiki assistant...",
-    max_iterations=80,
+    max_iterations=450,
     logger=logger
 )
 ```
@@ -52,7 +52,7 @@ agent_loop = AgentLoop(
 **Key Features:**
 - **Conversation History**: LLM sees previous tool results
 - **Tool Chaining**: LLM automatically chains tool calls
-- **Max Iterations**: Prevents infinite loops (default: 80)
+- **Max Iterations**: Prevents infinite loops (default: 450)
 - **Terminal Tools**: Specific tools that signal completion
 
 **Methods:**
